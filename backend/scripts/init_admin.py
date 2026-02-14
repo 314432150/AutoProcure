@@ -6,8 +6,15 @@
 
 import asyncio
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
+
+# 兼容以文件路径执行脚本时的模块导入路径
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from app.core.security import hash_password
 from app.db.mongo import get_client, get_database

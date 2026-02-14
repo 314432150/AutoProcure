@@ -69,7 +69,7 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    command: ["python", "scripts/init_admin.py"]
+    command: ["python", "-m", "scripts.init_admin"]
     environment:
       # 后端连接 Mongo（通过 compose 服务名 mongo）
       MONGO_URI: mongodb://mongo:27017
