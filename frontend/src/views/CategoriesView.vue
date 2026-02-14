@@ -8,6 +8,7 @@ import { useRoute } from 'vue-router'
 import { useTabsStore } from '../stores/tabs'
 
 const loading = ref(false)
+const saving = ref(false)
 const items = ref([])
 const editOpen = ref(false)
 const editMode = ref('create')
@@ -34,6 +35,14 @@ const editForm = reactive({
   items_count_max: null,
   cycle_days: null,
   float_days: null,
+})
+
+const editErrors = reactive({
+  name: '',
+  purchase_mode: '',
+  items_count_range: '',
+  cycle_days: '',
+  float_days: '',
 })
 
 const deactivateForm = reactive({
@@ -65,19 +74,80 @@ const checkCategoryNameConflict = async (name, currentId = '') => {
 }
 
 /** 校验并构建选品数量范围 */
-const buildRange = (min, max, label) => {
+const buildRange = (min, max) => {
   if (min === null && max === null) {
     return null
   }
   if (min === null || max === null) {
-    ElMessage.warning(`${label}请同时填写最小值与最大值，或全部留空`)
     return undefined
   }
   if (Number(min) > Number(max)) {
-    ElMessage.warning(`${label}最小值不能大于最大值`)
     return undefined
   }
   return { min: Number(min), max: Number(max) }
+}
+
+const clearEditErrors = () => {
+  editErrors.name = ''
+  editErrors.purchase_mode = ''
+  editErrors.items_count_range = ''
+  editErrors.cycle_days = ''
+  editErrors.float_days = ''
+}
+
+const validateName = () => {
+  const value = String(editForm.name || '').trim()
+  if (!value) {
+    editErrors.name = '请输入品类名称'
+    return false
+  }
+  editErrors.name = ''
+  return true
+}
+
+const validatePurchaseMode = () => {
+  if (!editForm.purchase_mode) {
+    editErrors.purchase_mode = '请选择采购模式'
+    return false
+  }
+  editErrors.purchase_mode = ''
+  return true
+}
+
+const validateItemsCountRange = () => {
+  const range = buildRange(editForm.items_count_min, editForm.items_count_max)
+  if (range === undefined) {
+    if (editForm.items_count_min === null || editForm.items_count_max === null) {
+      editErrors.items_count_range = '选品数量范围请同时填写最小值与最大值，或全部留空'
+    } else {
+      editErrors.items_count_range = '选品数量范围最小值不能大于最大值'
+    }
+    return undefined
+  }
+  editErrors.items_count_range = ''
+  return range
+}
+
+const validatePeriodicFields = () => {
+  if (editForm.purchase_mode !== 'periodic') {
+    editErrors.cycle_days = ''
+    editErrors.float_days = ''
+    return true
+  }
+  let ok = true
+  if (editForm.cycle_days === null || Number(editForm.cycle_days) < 1) {
+    editErrors.cycle_days = '周期天数需大于等于 1'
+    ok = false
+  } else {
+    editErrors.cycle_days = ''
+  }
+  if (editForm.float_days === null || Number(editForm.float_days) < 0) {
+    editErrors.float_days = '浮动天数需大于等于 0'
+    ok = false
+  } else {
+    editErrors.float_days = ''
+  }
+  return ok
 }
 
 /** 拉取品类列表 */
@@ -149,6 +219,7 @@ const openCreate = () => {
     cycle_days: null,
     float_days: null,
   })
+  clearEditErrors()
   editOpen.value = true
   editSnapshot.value = buildEditSnapshot()
 }
@@ -163,34 +234,34 @@ const openEdit = (row) => {
   editForm.items_count_max = row.items_count_range?.max ?? null
   editForm.cycle_days = row.cycle_days ?? null
   editForm.float_days = row.float_days ?? null
+  clearEditErrors()
   editOpen.value = true
   editSnapshot.value = buildEditSnapshot()
 }
 
 /** 校验并保存品类（新增/修改共用） */
 const onSave = async () => {
-  if (!editForm.name) {
-    ElMessage.warning('请输入品类名称')
+  if (saving.value) return
+  const validName = validateName()
+  const validPurchaseMode = validatePurchaseMode()
+  const itemsCountRange = validateItemsCountRange()
+  const periodicValid = validatePeriodicFields()
+  if (!validName || !validPurchaseMode || itemsCountRange === undefined || !periodicValid) {
+    ElMessage.warning('请先修正表单校验错误')
     return
   }
   const trimmedName = String(editForm.name).trim()
-  if (!trimmedName) {
-    ElMessage.warning('请输入品类名称')
-    return
-  }
   const hasConflict = await checkCategoryNameConflict(
     trimmedName,
     editMode.value === 'edit' ? editForm.id : '',
   )
   if (hasConflict) {
+    editErrors.name = '品类名称已存在，请修改后再保存'
     ElMessage.warning('品类名称已存在，请修改后再保存')
     return
   }
+  editErrors.name = ''
   editForm.name = trimmedName
-  const itemsCountRange = buildRange(editForm.items_count_min, editForm.items_count_max, '选品数量范围')
-  if (itemsCountRange === undefined) {
-    return
-  }
   const isPeriodic = editForm.purchase_mode === 'periodic'
   const payload = {
     name: trimmedName,
@@ -199,16 +270,21 @@ const onSave = async () => {
     cycle_days: isPeriodic ? (editForm.cycle_days ?? null) : null,
     float_days: isPeriodic ? (editForm.float_days ?? null) : null,
   }
-  if (editMode.value === 'create') {
-    await client.post('/api/categories', payload)
-    ElMessage.success('品类已新增')
-  } else {
-    await client.put(`/api/categories/${editForm.id}`, payload)
-    ElMessage.success('品类已更新')
+  saving.value = true
+  try {
+    if (editMode.value === 'create') {
+      await client.post('/api/categories', payload)
+      ElMessage.success('品类已新增')
+    } else {
+      await client.put(`/api/categories/${editForm.id}`, payload)
+      ElMessage.success('品类已更新')
+    }
+    editOpen.value = false
+    editSnapshot.value = null
+    fetchCategories()
+  } finally {
+    saving.value = false
   }
-  editOpen.value = false
-  editSnapshot.value = null
-  fetchCategories()
 }
 
 /** 打开作废弹窗并准备转移信息 */
@@ -289,10 +365,12 @@ watch(
 watch(
   () => editForm.purchase_mode,
   (mode) => {
+    validatePurchaseMode()
     if (mode !== 'periodic') {
       editForm.cycle_days = null
       editForm.float_days = null
     }
+    validatePeriodicFields()
   },
 )
 
@@ -519,7 +597,8 @@ const onSortChange = (payload) => {
     >
       <el-form label-position="left" label-width="120px">
         <el-form-item label="品类名称">
-          <el-input v-model="editForm.name" />
+          <el-input v-model="editForm.name" @blur="validateName" />
+          <div v-if="editErrors.name" class="field-error">{{ editErrors.name }}</div>
         </el-form-item>
         <el-form-item>
           <template #label>
@@ -536,6 +615,7 @@ const onSortChange = (payload) => {
             <el-option label="每日" value="daily" />
             <el-option label="定期" value="periodic" />
           </el-select>
+          <div v-if="editErrors.purchase_mode" class="field-error">{{ editErrors.purchase_mode }}</div>
         </el-form-item>
         <el-form-item v-if="editForm.purchase_mode === 'periodic'" label="周期天数">
           <template #label>
@@ -548,7 +628,8 @@ const onSortChange = (payload) => {
               </el-tooltip>
             </span>
           </template>
-          <el-input-number v-model="editForm.cycle_days" :min="1" />
+          <el-input-number v-model="editForm.cycle_days" :min="1" @blur="validatePeriodicFields" />
+          <div v-if="editErrors.cycle_days" class="field-error">{{ editErrors.cycle_days }}</div>
         </el-form-item>
         <el-form-item v-if="editForm.purchase_mode === 'periodic'" label="浮动天数">
           <template #label>
@@ -561,7 +642,8 @@ const onSortChange = (payload) => {
               </el-tooltip>
             </span>
           </template>
-          <el-input-number v-model="editForm.float_days" :min="0" />
+          <el-input-number v-model="editForm.float_days" :min="0" @blur="validatePeriodicFields" />
+          <div v-if="editErrors.float_days" class="field-error">{{ editErrors.float_days }}</div>
         </el-form-item>
         <el-form-item label="选品数量范围">
           <template #label>
@@ -575,10 +657,11 @@ const onSortChange = (payload) => {
             </span>
           </template>
           <div class="inline">
-            <el-input-number v-model="editForm.items_count_min" :min="1" />
+            <el-input-number v-model="editForm.items_count_min" :min="1" @blur="validateItemsCountRange" />
             <span>至</span>
-            <el-input-number v-model="editForm.items_count_max" :min="1" />
+            <el-input-number v-model="editForm.items_count_max" :min="1" @blur="validateItemsCountRange" />
           </div>
+          <div v-if="editErrors.items_count_range" class="field-error">{{ editErrors.items_count_range }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -630,6 +713,13 @@ const onSortChange = (payload) => {
   color: #666;
   font-size: 12px;
   margin-top: 8px;
+}
+
+.field-error {
+  margin-top: 6px;
+  line-height: 1.4;
+  font-size: 12px;
+  color: #f56c6c;
 }
 
 </style>

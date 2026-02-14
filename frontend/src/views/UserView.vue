@@ -12,6 +12,8 @@ const tabsStore = useTabsStore();
 const loading = ref(false);
 const saving = ref(false);
 const profileSnapshot = ref({ full_name: "" });
+const nameError = ref("");
+const passwordOpen = ref(false);
 
 const form = reactive({
   username: "",
@@ -21,11 +23,23 @@ const form = reactive({
   confirm_password: "",
 });
 
+const validateFullName = () => {
+  const value = String(form.full_name || "").trim();
+  if (!value) {
+    nameError.value = "请输入姓名";
+    return false;
+  }
+  nameError.value = "";
+  form.full_name = value;
+  return true;
+};
+
 /** 将用户资料回填到表单 */
 const applyProfile = (profile) => {
   form.username = profile?.username || "";
   form.full_name = profile?.full_name || "";
   profileSnapshot.value = { full_name: form.full_name };
+  nameError.value = "";
 };
 
 const hasPasswordInput = computed(() =>
@@ -65,6 +79,11 @@ const fetchProfile = async () => {
 
 /** 保存用户资料并处理密码更新 */
 const onSave = async () => {
+  if (saving.value) return;
+  if (!validateFullName()) {
+    ElMessage.warning("请先修正表单校验错误");
+    return;
+  }
   if (form.new_password || form.confirm_password || form.current_password) {
     if (
       !form.current_password ||
@@ -94,6 +113,7 @@ const onSave = async () => {
       full_name: form.full_name,
     });
     const profileData = unwrap(profileResp);
+    applyProfile(profileData.user_info);
     auth.setSession(auth.token, profileData.user_info);
 
     if (form.new_password) {
@@ -104,6 +124,7 @@ const onSave = async () => {
       form.current_password = "";
       form.new_password = "";
       form.confirm_password = "";
+      passwordOpen.value = false;
     }
 
     ElMessage.success("保存成功");
@@ -162,50 +183,60 @@ onBeforeUnmount(() => {
             <el-input v-model="form.username" disabled />
           </el-form-item>
           <el-form-item label="姓名">
-            <el-input v-model="form.full_name" placeholder="请输入姓名" />
+            <el-input v-model="form.full_name" placeholder="请输入姓名" @blur="validateFullName" />
+            <div v-if="nameError" class="field-tip warning">{{ nameError }}</div>
           </el-form-item>
         </el-card>
         <el-card class="group-card">
-            <template #header>修改密码</template>
-          <el-form-item label="当前密码">
-            <el-input
-              v-model="form.current_password"
-              type="password"
-              show-password
-            />
-            <div
-              v-if="hasPasswordInput && !form.current_password"
-              class="field-tip warning"
-            >
-              请输入当前密码
+          <template #header>
+            <div class="password-header">
+              <span>密码设置</span>
+              <el-button text type="primary" @click="passwordOpen = !passwordOpen">
+                {{ passwordOpen ? "收起" : "修改密码" }}
+              </el-button>
             </div>
-          </el-form-item>
-          <el-form-item label="新密码">
-            <el-input
-              v-model="form.new_password"
-              type="password"
-              show-password
-            />
-            <div v-if="isNewPasswordInvalid" class="field-tip warning">
-              至少 8 位，且包含字母与数字
-            </div>
-            <div v-else-if="form.new_password" class="field-tip ok">
-              校验通过
-            </div>
-          </el-form-item>
-          <el-form-item label="确认新密码">
-            <el-input
-              v-model="form.confirm_password"
-              type="password"
-              show-password
-            />
-            <div v-if="isConfirmShown" class="field-tip warning">
-              两次输入一致
-            </div>
-            <div v-else-if="form.confirm_password" class="field-tip ok">
-              校验通过
-            </div>
-          </el-form-item>
+          </template>
+          <div v-if="passwordOpen">
+            <el-form-item label="当前密码">
+              <el-input
+                v-model="form.current_password"
+                type="password"
+                show-password
+              />
+              <div
+                v-if="hasPasswordInput && !form.current_password"
+                class="field-tip warning"
+              >
+                请输入当前密码
+              </div>
+            </el-form-item>
+            <el-form-item label="新密码">
+              <el-input
+                v-model="form.new_password"
+                type="password"
+                show-password
+              />
+              <div v-if="isNewPasswordInvalid" class="field-tip warning">
+                至少 8 位，且包含字母与数字
+              </div>
+              <div v-else-if="form.new_password" class="field-tip ok">
+                校验通过
+              </div>
+            </el-form-item>
+            <el-form-item label="确认新密码">
+              <el-input
+                v-model="form.confirm_password"
+                type="password"
+                show-password
+              />
+              <div v-if="isConfirmShown" class="field-tip warning">
+                两次输入一致
+              </div>
+              <div v-else-if="form.confirm_password" class="field-tip ok">
+                校验通过
+              </div>
+            </el-form-item>
+          </div>
         </el-card>
       </el-form>
       <div class="profile-actions form-narrow">
@@ -238,6 +269,12 @@ onBeforeUnmount(() => {
 
 .field-tip.warning {
   color: #b8471b;
+}
+
+.password-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 </style>

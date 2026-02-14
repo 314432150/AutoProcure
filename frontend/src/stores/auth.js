@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 const TOKEN_KEY = 'auth_token'
 const USER_KEY = 'auth_user'
 const REMEMBER_KEY = 'auth_remember'
+const readRemember = () => localStorage.getItem(REMEMBER_KEY) === '1'
 
 const readToken = () => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || ''
 
@@ -22,7 +23,7 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     /** 写入登录令牌与用户信息到本地存储 */
-    setSession(token, user, remember = false) {
+    setSession(token, user, remember = readRemember()) {
       this.token = token
       this.user = user
       const target = remember ? localStorage : sessionStorage

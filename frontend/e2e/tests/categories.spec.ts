@@ -17,9 +17,69 @@ test.describe("Categories", () => {
 
   test("新增品类名称必填校验", async ({ page }) => {
     await page.getByRole("button", { name: "新增品类" }).click();
-    await expect(page.getByRole("dialog", { name: "新增品类" })).toBeVisible();
+    const dialog = page.getByRole("dialog", { name: "新增品类" });
+    await expect(dialog).toBeVisible();
     await page.getByRole("button", { name: "保存" }).click();
-    await expect(page.locator(".el-message--warning")).toContainText("请输入品类名称");
+    await expect(page.locator(".el-message--warning")).toContainText("请先修正表单校验错误");
+    await expect(dialog.getByText("请输入品类名称")).toBeVisible();
+  });
+
+  test("新增品类时名称失焦触发校验并显示在表单下方", async ({ page }) => {
+    await page.getByRole("button", { name: "新增品类" }).click();
+    const dialog = page.getByRole("dialog", { name: "新增品类" });
+    await expect(dialog).toBeVisible();
+
+    const nameInput = dialog.getByRole("textbox").first();
+    await nameInput.focus();
+    await nameInput.blur();
+
+    await expect(dialog.getByText("请输入品类名称")).toBeVisible();
+  });
+
+  test("新增品类时数量范围失焦触发校验并显示在表单下方", async ({ page }) => {
+    await page.getByRole("button", { name: "新增品类" }).click();
+    const dialog = page.getByRole("dialog", { name: "新增品类" });
+    await expect(dialog).toBeVisible();
+
+    const spinbuttons = dialog.getByRole("spinbutton");
+    await spinbuttons.nth(0).fill("5");
+    await spinbuttons.nth(1).fill("2");
+    await spinbuttons.nth(1).blur();
+
+    await expect(dialog.getByText("选品数量范围最小值不能大于最大值")).toBeVisible();
+  });
+
+  test("新增品类时采购模式必选校验", async ({ page }) => {
+    await page.getByRole("button", { name: "新增品类" }).click();
+    const dialog = page.getByRole("dialog", { name: "新增品类" });
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("textbox").first().fill("新鲜品类");
+    await dialog.getByRole("button", { name: "保存" }).click();
+
+    await expect(page.locator(".el-message--warning")).toContainText("请先修正表单校验错误");
+    await expect(dialog.getByText("请选择采购模式")).toBeVisible();
+  });
+
+  test("新增品类表单校验失败时 Ctrl+S 不应提示保存成功", async ({ page }) => {
+    let saveCalled = false;
+    await page.route(/.*\/api\/categories(\?.*)?$/, async (route, request) => {
+      if (request.method() === "POST") {
+        saveCalled = true;
+      }
+      return route.fallback();
+    });
+
+    await page.getByRole("button", { name: "新增品类" }).click();
+    const dialog = page.getByRole("dialog", { name: "新增品类" });
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press("Control+S");
+    await expect(page.locator(".el-message--warning")).toContainText("请先修正表单校验错误");
+    await expect(dialog.getByText("请输入品类名称")).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".el-message--success")).toHaveCount(0);
+    expect(saveCalled).toBeFalsy();
   });
 
   test("编辑品类并保存", async ({ page }) => {
@@ -28,6 +88,31 @@ test.describe("Categories", () => {
     await page.getByRole("textbox").first().fill("蔬菜A");
     await page.getByRole("button", { name: "保存" }).click();
     await expect(page.locator(".el-message--success")).toContainText("品类已更新");
+  });
+
+  test("编辑品类时采购模式必选校验", async ({ page }) => {
+    await mockCategoriesApis(page, {
+      items: [
+        {
+          id: "c1",
+          name: "蔬菜",
+          is_active: true,
+          product_count: 2,
+          purchase_mode: "",
+          items_count_range: { min: 1, max: 3 },
+          updated_at: "2026-02-14T08:00:00Z",
+        },
+      ],
+    });
+    await page.reload();
+
+    await page.getByText("蔬菜").dblclick();
+    const dialog = page.getByRole("dialog", { name: "编辑品类" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "保存" }).click();
+
+    await expect(page.locator(".el-message--warning")).toContainText("请先修正表单校验错误");
+    await expect(dialog.getByText("请选择采购模式")).toBeVisible();
   });
 
   test("无产品直接作废", async ({ page }) => {

@@ -30,6 +30,26 @@ test.describe("Products", () => {
     );
   });
 
+  test("新增产品表单校验失败时 Ctrl+S 不应提示保存成功", async ({ page }) => {
+    let saveCalled = false;
+    await page.route(/.*\/api\/products(\?.*)?$/, async (route, request) => {
+      if (request.method() === "POST") {
+        saveCalled = true;
+      }
+      return route.fallback();
+    });
+
+    await page.getByRole("button", { name: "新增产品" }).click();
+    const dialog = page.getByRole("dialog", { name: "新增产品" });
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press("Control+S");
+    await expect(page.locator(".el-message--warning")).toContainText("请先修正表单校验错误");
+    await page.waitForTimeout(300);
+    await expect(page.locator(".el-message--success")).toHaveCount(0);
+    expect(saveCalled).toBeFalsy();
+  });
+
   test("搜索筛选刷新列表", async ({ page }) => {
     await page.route(/.*\/api\/products(\?.*)?$/, async (route, request) => {
       const url = new URL(request.url());

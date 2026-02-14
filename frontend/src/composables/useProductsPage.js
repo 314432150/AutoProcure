@@ -9,6 +9,7 @@ export const useProductsPage = () => {
   const loading = ref(false);
   const editOpen = ref(false);
   const editMode = ref("create");
+  const editSaving = ref(false);
   const productsTableRef = ref(null);
   const items = ref([]);
   const categories = ref([]);
@@ -441,6 +442,7 @@ export const useProductsPage = () => {
   };
 
   const onSave = async () => {
+    if (editSaving.value) return;
     const validName = await validateEditNameUnique();
     const validCategory = validateEditCategory();
     const validPrice = validateEditBasePrice();
@@ -472,16 +474,21 @@ export const useProductsPage = () => {
           : (Number(editForm.volatility_percent || 0) / 100).toString(),
       item_quantity_range: itemQuantityRange,
     };
-    if (editMode.value === "create") {
-      await client.post("/api/products", payload);
-      ElMessage.success("已新增产品");
-    } else {
-      await client.put(`/api/products/${editForm.id}`, payload);
-      ElMessage.success("已更新产品");
+    editSaving.value = true;
+    try {
+      if (editMode.value === "create") {
+        await client.post("/api/products", payload);
+        ElMessage.success("已新增产品");
+      } else {
+        await client.put(`/api/products/${editForm.id}`, payload);
+        ElMessage.success("已更新产品");
+      }
+      editOpen.value = false;
+      editSnapshot.value = null;
+      fetchProducts();
+    } finally {
+      editSaving.value = false;
     }
-    editOpen.value = false;
-    editSnapshot.value = null;
-    fetchProducts();
   };
 
   const onUnitBlur = () => {
