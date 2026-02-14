@@ -47,4 +47,78 @@
 - 若预算区间不合理，生成时会提示预算不可行。
 - 导出前确认模板与精度设置，避免报表显示不一致。
 
+## 7. Docker Compose 部署
+```yaml
+services:
+  mongo:
+    image: mongo:7
+    container_name: autoprocure-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  init-admin:
+    image: qiufengqi/autoprocure:latest
+    container_name: autoprocure-init-admin
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    command: ["python", "scripts/init_admin.py"]
+    environment:
+      # 后端连接 Mongo（通过 compose 服务名 mongo）
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: autoprocure
+
+      # 初始化管理员账号（可按需修改）
+      INIT_ADMIN_USERNAME: "admin"
+      INIT_ADMIN_PASSWORD: "admin123"
+      INIT_ADMIN_FULL_NAME: "管理员"
+
+  app:
+    image: qiufengqi/autoprocure:latest
+    container_name: autoprocure-app
+    restart: unless-stopped
+    depends_on:
+      init-admin:
+        condition: service_completed_successfully
+    ports:
+      - "18766:18766"
+    environment:
+      # 后端连接 Mongo（通过 compose 服务名 mongo）
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: autoprocure
+
+      # 认证相关配置
+      AUTH_ENABLED: "true"
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRES_MINUTES: "10080"
+      # 部署前请替换为强随机密钥（至少32位）
+      JWT_SECRET: "请在部署前替换为强随机密钥"
+
+volumes:
+  mongo_data:
+```
+
+启动：
+```bash
+docker compose up -d
+```
+
+访问：
+```text
+http://HOST_IP:18766
+```
+
+默认管理员账号：
+```text
+用户名：admin
+密码：admin123
+```
+
 如需更深入的技术说明，请参考 `PROJECT_SPEC.md`。
