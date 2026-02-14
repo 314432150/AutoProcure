@@ -13,3 +13,4 @@ pandas_market_calendars
 pytest
 pytest-asyncio
 mongomock_motor
+python-multipart
