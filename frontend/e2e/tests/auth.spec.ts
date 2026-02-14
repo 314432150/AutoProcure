@@ -37,6 +37,34 @@ test.describe("Auth", () => {
     await expect(page.getByText("张三")).toBeVisible();
   });
 
+  test("在密码框按回车可触发登录", async ({ page }) => {
+    await mockAuthApis(page);
+    await mockCategoriesApis(page);
+    await mockProductsApis(page);
+
+    await page.goto("/login");
+    await page.getByPlaceholder("请输入密码").press("Enter");
+
+    await expect(page).toHaveURL(/\/products/);
+    await expect(page.locator(".el-message--success")).toContainText("登录成功");
+  });
+
+  test("登录失败时显示错误提示", async ({ page }) => {
+    await page.route(/.*\/api\/auth\/login$/, async (route) => {
+      return route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "账号或密码错误" }),
+      });
+    });
+
+    await page.goto("/login");
+    await page.getByRole("button", { name: "登录" }).click();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator(".el-message--error").first()).toContainText("账号或密码错误");
+  });
+
   test("退出登录后跳转登录页并清理状态", async ({ page }) => {
     await mockAuthApis(page);
     await mockCategoriesApis(page);

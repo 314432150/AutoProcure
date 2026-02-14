@@ -16,6 +16,7 @@ const loading = ref(false)
 
 /** 提交登录表单并写入会话信息 */
 const onSubmit = async () => {
+  if (loading.value) return
   loading.value = true
   try {
     const resp = await client.post('/api/auth/login', form)
@@ -49,7 +50,13 @@ const onSubmit = async () => {
           <el-input v-model="form.username" placeholder="请输入账号" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
+          <el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            placeholder="请输入密码"
+            @keyup.enter="onSubmit"
+          />
         </el-form-item>
         <el-button type="primary" size="large" :loading="loading" @click="onSubmit">登录</el-button>
       </el-form>
