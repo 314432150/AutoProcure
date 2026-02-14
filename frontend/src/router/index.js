@@ -38,10 +38,13 @@ const router = createRouter({
 /** 注册路由守卫，未登录跳转到登录页 */
 export const setupRouterGuards = (pinia) => {
   router.beforeEach((to) => {
+    const auth = useAuthStore(pinia)
+    if (to.path === '/login' && auth.isAuthed) {
+      return { path: '/products' }
+    }
     if (to.meta.public) {
       return true
     }
-    const auth = useAuthStore(pinia)
     if (!auth.isAuthed) {
       return { path: '/login' }
     }

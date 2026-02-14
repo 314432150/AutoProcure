@@ -65,6 +65,50 @@ test.describe("Auth", () => {
     await expect(page.locator(".el-message--error").first()).toContainText("账号或密码错误");
   });
 
+  test("退出后登录页回填当前登录账号密码", async ({ page }) => {
+    await mockAuthApis(page, {
+      user: { id: "u2", username: "zhangqian", full_name: "张千", name: "张千" },
+    });
+    await mockCategoriesApis(page);
+    await mockProductsApis(page);
+
+    await page.goto("/login");
+    await page.getByPlaceholder("请输入账号").fill("zhangqian");
+    await page.getByPlaceholder("请输入密码").fill("zhangqian7426");
+    await page.getByRole("button", { name: "登录" }).click();
+    await expect(page).toHaveURL(/\/products/);
+
+    await page.getByRole("button", { name: "退出" }).first().click();
+    await expect(page.getByRole("dialog", { name: "退出登录" })).toBeVisible();
+    await page.getByRole("button", { name: "退出" }).last().click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await expect(page.getByPlaceholder("请输入账号")).toHaveValue("zhangqian");
+    await expect(page.getByPlaceholder("请输入密码")).toHaveValue("zhangqian7426");
+  });
+
+  test("勾选保持登录后重开浏览器可自动进入主页面", async ({ page, browser }) => {
+    await mockAuthApis(page);
+    await mockCategoriesApis(page);
+    await mockProductsApis(page);
+
+    await page.goto("/login");
+    await page.locator(".el-checkbox:has-text('保持登录')").click();
+    await page.getByRole("button", { name: "登录" }).click();
+    await expect(page).toHaveURL(/\/products/);
+
+    const state = await page.context().storageState();
+    const context2 = await browser.newContext({ storageState: state });
+    const page2 = await context2.newPage();
+    await mockAuthApis(page2);
+    await mockCategoriesApis(page2);
+    await mockProductsApis(page2);
+
+    await page2.goto((process.env.E2E_BASE_URL || "http://127.0.0.1:4173") + "/login");
+    await expect(page2).toHaveURL(/\/products/);
+    await context2.close();
+  });
+
   test("退出登录后跳转登录页并清理状态", async ({ page }) => {
     await mockAuthApis(page);
     await mockCategoriesApis(page);

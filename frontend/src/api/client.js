@@ -3,6 +3,10 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const apiBase = import.meta.env.VITE_API_BASE || ''
+const TOKEN_KEY = 'auth_token'
+const USER_KEY = 'auth_user'
+
+const getToken = () => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY)
 
 const client = axios.create({
   baseURL: apiBase,
@@ -10,7 +14,7 @@ const client = axios.create({
 })
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
+  const token = getToken()
   if (token) {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`
@@ -22,8 +26,10 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem("auth_token")
-      localStorage.removeItem("auth_user")
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
+      sessionStorage.removeItem(TOKEN_KEY)
+      sessionStorage.removeItem(USER_KEY)
       if (window.location.pathname !== "/login") {
         window.location.href = "/login"
       }

@@ -1,17 +1,22 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import client, { unwrap } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
+const LAST_USERNAME_KEY = 'auth_last_username'
+const LAST_PASSWORD_KEY = 'auth_last_password'
+const REMEMBER_KEY = 'auth_remember'
+
 const router = useRouter()
 const auth = useAuthStore()
 
 const form = reactive({
-  username: 'admin',
-  password: 'admin123',
+  username: '',
+  password: '',
 })
+const rememberMe = ref(localStorage.getItem(REMEMBER_KEY) === '1')
 const loading = ref(false)
 
 /** 提交登录表单并写入会话信息 */
@@ -21,7 +26,10 @@ const onSubmit = async () => {
   try {
     const resp = await client.post('/api/auth/login', form)
     const data = unwrap(resp)
-    auth.setSession(data.token, data.user_info)
+    auth.setSession(data.token, data.user_info, rememberMe.value)
+    localStorage.setItem(LAST_USERNAME_KEY, form.username)
+    localStorage.setItem(LAST_PASSWORD_KEY, form.password)
+    localStorage.setItem(REMEMBER_KEY, rememberMe.value ? '1' : '0')
     ElMessage.success('登录成功')
     router.push('/products')
   } catch (error) {
@@ -32,6 +40,11 @@ const onSubmit = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  form.username = localStorage.getItem(LAST_USERNAME_KEY) || ''
+  form.password = localStorage.getItem(LAST_PASSWORD_KEY) || ''
+})
 </script>
 
 <template>
@@ -58,6 +71,7 @@ const onSubmit = async () => {
             @keyup.enter="onSubmit"
           />
         </el-form-item>
+        <el-checkbox v-model="rememberMe">保持登录</el-checkbox>
         <el-button type="primary" size="large" :loading="loading" @click="onSubmit">登录</el-button>
       </el-form>
     </div>
