@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+motor
+pydantic
+pydantic-settings
+python-dotenv
+pandas
+openpyxl
+httpx
+pyjwt
+passlib
+pandas_market_calendars
+pytest
+pytest-asyncio
+mongomock_motor

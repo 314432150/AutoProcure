@@ -1,0 +1,244 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root {
+  font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1f1c17;
+  background: #f7f2e7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --ink: #1f1c17;
+  --muted: #6b6256;
+  --card: #fff9f0;
+  --chip: #efe2cc;
+  --accent: #c40000;
+  --accent-deep: #8f0000;
+  --gold: #d4b56e;
+  --shadow-md: 0 12px 28px rgba(50, 36, 26, 0.14);
+  --el-color-primary: #c40000;
+  --el-color-primary-light-3: #d33a3a;
+  --el-color-primary-light-5: #de5a5a;
+  --el-color-primary-light-7: #e98383;
+  --el-color-primary-light-9: #f3b7b7;
+  --el-color-primary-dark-2: #8f0000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(212, 181, 110, 0.22), transparent 55%),
+    radial-gradient(circle at top right, rgba(196, 0, 0, 0.12), transparent 45%),
+    linear-gradient(180deg, #fbf4e8 0%, #f4eadd 55%, #f1e3d3 100%);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#app {
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.page {
+  animation: fadeUp 0.5s ease both;
+}
+
+.card {
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+}
+
+.group-card {
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+}
+
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shared layout + toolbar helpers */
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-card {
+  flex: 0 0 auto;
+  margin-bottom: 4px;
+}
+
+.table-card .el-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-shell {
+  flex: 1;
+  overflow: hidden;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.toolbar .el-input,
+.toolbar .el-input-number,
+.toolbar .el-select {
+  width: 160px;
+}
+
+.toolbar .el-input__wrapper,
+.toolbar .el-input-number__wrapper,
+.toolbar .el-select__wrapper {
+  min-height: 34px;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Shared form + card layout helpers */
+.settings-stack,
+.profile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-form,
+.profile-form {
+  display: grid;
+  gap: 12px 20px;
+  width: 100%;
+}
+
+.settings-actions,
+.profile-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.form-narrow {
+  max-width: 520px;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.range-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-label,
+.date-divider {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .form-narrow {
+    max-width: 100%;
+  }
+}
+
+.th-with-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.th-tip {
+  color: rgba(107, 98, 86, 0.55);
+  font-size: 13px;
+  cursor: help;
+}
+
+.row-edit-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row-edit-icon {
+  color: rgba(107, 98, 86, 0.45);
+  font-size: 12px;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  opacity: 0.6;
+}
+
+/* Edit icon helper (click-to-edit affordance) */
+.row-edit-icon--strong {
+  margin-left: 6px;
+  color: rgba(196, 0, 0, 0.85);
+}
+
+.el-table__row:hover .row-edit-icon {
+  opacity: 1;
+  color: rgba(107, 98, 86, 0.7);
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    position: static;
+  }
+
+  .toolbar .el-input,
+  .toolbar .el-input-number,
+  .toolbar .el-select {
+    width: 100%;
+  }
+}
