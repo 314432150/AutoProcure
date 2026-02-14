@@ -24,7 +24,9 @@ const onSubmit = async () => {
     ElMessage.success('登录成功')
     router.push('/products')
   } catch (error) {
-    // handled by interceptor
+    const payload = error?.response?.data
+    const message = payload?.message || payload?.detail || error?.message || '登录失败'
+    ElMessage.error(message)
   } finally {
     loading.value = false
   }
