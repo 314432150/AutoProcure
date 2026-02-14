@@ -91,12 +91,22 @@ const fetchExportSettings = async () => {
   exportPrecision.value = ALLOWED_EXPORT_PRECISIONS.includes(value) ? value : 2;
 };
 
+const resolveRequestErrorMessage = (error) =>
+  error?.response?.data?.message || error?.response?.data?.detail || error?.message || "请求失败";
+
+const isBudgetRangeConfigError = (error) => {
+  const payload = error?.response?.data || {};
+  const message = payload?.message || payload?.detail || "";
+  return Number(payload?.code) === 4104 || message === "未配置预算区间" || message === "预算区间无效";
+};
+
 const generatePlans = async (forceOverwrite = false, refresh = true) => {
   const resp = await client.post("/api/procurement/generate", null, {
     params: {
       ...generateForm,
       force_overwrite: forceOverwrite,
     },
+    suppressError: true,
   });
   const data = unwrap(resp);
   if (data.status !== "冲突") {
@@ -112,7 +122,19 @@ const generatePlans = async (forceOverwrite = false, refresh = true) => {
 };
 
 const onGenerate = async () => {
-  const data = await generatePlans(false, false);
+  let data;
+  try {
+    data = await generatePlans(false, false);
+  } catch (error) {
+    if (isBudgetRangeConfigError(error)) {
+      await fetchSettings().catch(() => {});
+      budgetDialogOpen.value = true;
+      ElMessage.warning("请先设置预算区间");
+      return;
+    }
+    ElMessage.warning(resolveRequestErrorMessage(error));
+    return;
+  }
   if (data?.status !== "冲突") {
     fetchPlans();
     return;
@@ -126,7 +148,17 @@ const onGenerate = async () => {
   } catch {
     return;
   }
-  await generatePlans(true);
+  try {
+    await generatePlans(true);
+  } catch (error) {
+    if (isBudgetRangeConfigError(error)) {
+      await fetchSettings().catch(() => {});
+      budgetDialogOpen.value = true;
+      ElMessage.warning("请先设置预算区间");
+      return;
+    }
+    ElMessage.warning(resolveRequestErrorMessage(error));
+  }
 };
 
 const onPlanAction = async (command) => {

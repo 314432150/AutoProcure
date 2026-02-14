@@ -64,6 +64,25 @@ test.describe("PlansView", () => {
     await expect(page.locator(".el-message--success")).toContainText("生成成功");
   });
 
+  test("未配置预算区间时自动弹出预算设置", async ({ page }) => {
+    await page.route(/.*\/api\/procurement\/generate(\?.*)?$/, async (route, request) => {
+      if (request.method() !== "POST") {
+        return route.fallback();
+      }
+      return route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 4104,
+          message: "未配置预算区间",
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "生成计划" }).click();
+    await expect(page.getByRole("dialog", { name: "预算设置" })).toBeVisible();
+  });
+
   test("无数据时导出提示", async ({ page }) => {
     await page.route(/.*\/api\/procurement\/plans(\?.*)?$/, async (route) => {
       return route.fulfill({

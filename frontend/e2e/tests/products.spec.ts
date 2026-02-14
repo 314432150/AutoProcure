@@ -168,6 +168,51 @@ test.describe("Products", () => {
     await expect(dialog).toBeHidden();
   });
 
+  test("导入Excel存在警告时自动打开导入报告抽屉", async ({ page }) => {
+    await page.route(/.*\/api\/products\/import(\?.*)?$/, async (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 2000,
+          message: "ok",
+          data: {
+            total: 2,
+            valid: 2,
+            skipped: 0,
+            errors: [],
+            warnings: [
+              {
+                row: 2,
+                field: "unit",
+                message: "单位与既有记录不一致，已按现有单位保留",
+                value: "kg",
+              },
+            ],
+            created: 0,
+            updated: 1,
+            deactivated: 0,
+            deactivate_candidates: [],
+          },
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: "更多操作" }).click();
+    await page.getByRole("menuitem", { name: "导入Excel" }).click();
+    const dialog = page.getByRole("dialog", { name: "导入产品库" });
+    await expect(dialog).toBeVisible();
+
+    const fileInput = dialog.locator('input[type="file"]');
+    const filePath = fileURLToPath(new URL("../fixtures/products.xlsx", import.meta.url));
+    await fileInput.setInputFiles(filePath);
+
+    const detailDrawer = page.getByRole("dialog", { name: "导入详情" });
+    await expect(detailDrawer).toBeVisible();
+    await expect(detailDrawer.getByText("存在警告，请确认后导入")).toBeVisible();
+    await expect(detailDrawer.getByRole("cell", { name: "警告" })).toBeVisible();
+  });
+
   test("导出Excel触发请求", async ({ page }) => {
     const downloadWaiter = page.waitForResponse(/.*\/api\/products\/export.*/);
     await page.getByRole("button", { name: "更多操作" }).click();

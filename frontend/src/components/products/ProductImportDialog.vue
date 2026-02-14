@@ -167,6 +167,15 @@ watch(
 );
 
 watch(
+  () => props.importHasWarnings,
+  (value) => {
+    if (!value) return;
+    detailTab.value = "report";
+    detailDrawerOpen.value = true;
+  },
+);
+
+watch(
   () => props.confirmDeactivate,
   (value) => {
     if (!value) return;
