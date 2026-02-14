@@ -21,8 +21,9 @@ const onLogout = async () => {
 <template>
   <!-- 组件说明：顶部栏，展示品牌与当前用户操作 -->
   <header class="topbar">
-    <div>
+    <div class="brand-row">
       <h1 class="brand">采购自动化管理</h1>
+      <slot name="extra-actions" />
     </div>
     <div class="topbar-actions">
       <div class="user-badge">
@@ -50,6 +51,12 @@ const onLogout = async () => {
   margin: 0;
   font-size: 22px;
   letter-spacing: 0.5px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .brand-sub {

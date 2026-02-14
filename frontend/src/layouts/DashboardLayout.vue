@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import SideNav from '../components/SideNav.vue'
@@ -9,6 +9,36 @@ import { useTabsStore } from '../stores/tabs'
 const route = useRoute()
 const router = useRouter()
 const tabsStore = useTabsStore()
+const ONBOARDING_DONE_KEY = 'autoprocure:onboarding:done:v1'
+
+const guideVisible = ref(false)
+const guideStep = ref(0)
+const guideSteps = [
+  {
+    title: '先完善品类库',
+    desc: '先在“品类库”建立可用品类，后续产品与计划会基于这些品类组织数据。',
+    actionLabel: '去品类库',
+    targetPath: '/categories',
+  },
+  {
+    title: '再维护产品库',
+    desc: '在“产品库”维护物料基础数据、单价与计量单位，支持新增与批量导入。',
+    actionLabel: '去产品库',
+    targetPath: '/products',
+  },
+  {
+    title: '生成采购计划',
+    desc: '进入“计划生成”选择月份后，系统会结合工作日自动安排计划；“工作日”页面主要用于查询确认。',
+    actionLabel: '去计划生成',
+    targetPath: '/plans',
+  },
+  {
+    title: '引导完成',
+    desc: '后续可通过顶部用户名旁的“新手引导”按钮随时重新查看这份引导。',
+    actionLabel: '开始使用',
+    targetPath: '/plans',
+  },
+]
 
 const tabPanes = computed(() => tabsStore.tabs)
 const cachedNames = computed(() => tabsStore.cachedNames)
@@ -75,6 +105,42 @@ const onTabRemove = async (targetPath) => {
   }, 0)
 }
 
+const openGuide = () => {
+  guideStep.value = 0
+  guideVisible.value = true
+}
+
+const finishGuide = () => {
+  localStorage.setItem(ONBOARDING_DONE_KEY, '1')
+  guideVisible.value = false
+}
+
+const openStepTarget = () => {
+  const target = guideSteps[guideStep.value]?.targetPath
+  if (target && target !== route.path) {
+    router.push(target)
+  }
+  if (guideStep.value >= guideSteps.length - 1) {
+    finishGuide()
+  }
+}
+
+const nextGuideStep = () => {
+  if (guideStep.value >= guideSteps.length - 1) {
+    finishGuide()
+    return
+  }
+  guideStep.value += 1
+}
+
+onMounted(() => {
+  const isBot = Boolean(navigator.webdriver)
+  const hasDone = localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
+  if (!isBot && !hasDone) {
+    guideVisible.value = true
+  }
+})
+
 
 watch(
   () => route.fullPath,
@@ -90,7 +156,11 @@ watch(
   <div class="layout">
     <SideNav />
     <div class="layout-main">
-      <TopBar />
+      <TopBar>
+        <template #extra-actions>
+          <el-button class="guide-entry" type="primary" @click="openGuide">新手引导</el-button>
+        </template>
+      </TopBar>
       <div class="layout-tabs">
         <el-tabs
           v-model="activeTab"
@@ -125,6 +195,32 @@ watch(
         </router-view>
       </main>
     </div>
+    <el-dialog
+      v-model="guideVisible"
+      width="560px"
+      align-center
+      :close-on-click-modal="false"
+      title="系统使用引导"
+    >
+      <div class="guide-body">
+        <el-steps :active="guideStep" finish-status="success" simple>
+          <el-step v-for="(item, idx) in guideSteps" :key="item.title" :title="`步骤 ${idx + 1}`" />
+        </el-steps>
+        <section class="guide-card">
+          <h3>{{ guideSteps[guideStep].title }}</h3>
+          <p>{{ guideSteps[guideStep].desc }}</p>
+        </section>
+      </div>
+      <template #footer>
+        <div class="guide-footer">
+          <el-button @click="guideVisible = false">稍后再看</el-button>
+          <el-button @click="openStepTarget">{{ guideSteps[guideStep].actionLabel }}</el-button>
+          <el-button type="primary" @click="nextGuideStep">
+            {{ guideStep >= guideSteps.length - 1 ? '完成引导' : '下一步' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -281,6 +377,39 @@ watch(
   padding-right: 4px;
   display: flex;
   flex-direction: column;
+}
+
+.guide-entry {
+  border-radius: 999px;
+}
+
+.guide-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.guide-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 164, 74, 0.24);
+  background: linear-gradient(145deg, rgba(255, 249, 240, 0.96), rgba(255, 238, 217, 0.9));
+}
+
+.guide-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.guide-card p {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.guide-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 1100px) {
