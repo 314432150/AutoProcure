@@ -54,6 +54,8 @@ services:
     image: mongo:7
     container_name: autoprocure-mongo
     restart: unless-stopped
+    ports:
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -120,5 +122,15 @@ http://HOST_IP:18766
 用户名：admin
 密码：admin123
 ```
+
+## 8. MongoDB Compass 连接
+连接地址：
+```text
+mongodb://HOST_IP:27017
+```
+
+说明：
+- 该端口仅建议内网使用。
+- 若后续启用 Mongo 账号密码，请改用带认证的连接串。
 
 如需更深入的技术说明，请参考 `PROJECT_SPEC.md`。
