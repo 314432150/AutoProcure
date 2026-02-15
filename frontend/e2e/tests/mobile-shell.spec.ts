@@ -57,5 +57,13 @@ test.describe("Mobile Shell Smoke", () => {
     await expect(page.locator(".mobile-product-card").first()).toBeVisible();
     await page.getByRole("button", { name: "新增产品" }).click();
     await expect(page.getByRole("dialog", { name: "新增产品" })).toBeVisible();
+
+    await page.locator(".menu-toggle").click();
+    await page.getByRole("menuitem", { name: /品类库/ }).click();
+    await expect(page.locator(".mobile-category-card").first()).toBeVisible();
+
+    await page.locator(".menu-toggle").click();
+    await page.getByRole("menuitem", { name: /工作日/ }).click();
+    await expect(page.getByText("工作日清单")).toBeVisible();
   });
 });

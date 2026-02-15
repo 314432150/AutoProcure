@@ -4,6 +4,7 @@ import { ref, watch } from "vue";
 import { Edit, InfoFilled } from "@element-plus/icons-vue";
 import { formatMoney } from "@/utils/formatters";
 import { quantityPrecisionByUnit, quantityStepByUnit } from "@/utils/unitRules";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
 
 const props = defineProps({
   plan: { type: Object, default: null },
@@ -35,6 +36,7 @@ const emit = defineEmits([
 
 const activeProductRow = ref(null);
 const productFilterKeyword = ref("");
+const isCompact = useViewportBreakpoint(900);
 
 /** 当计划被清空时，重置当前编辑中的产品行 */
 watch(
@@ -124,7 +126,7 @@ const onSortChange = (payload) => {
           </span>
           <span v-else class="save-state save-state--clean">已加载</span>
         </p>
-        <div class="drawer-actions">
+        <div class="drawer-actions" :class="{ 'drawer-actions--compact': isCompact }">
           <el-button type="primary" plain @click="emit('add-row')">新增行</el-button>
           <el-button type="primary" :loading="saving" @click="emit('save')">保存</el-button>
         </div>
@@ -392,5 +394,44 @@ const onSortChange = (payload) => {
 
 .th-tip {
   color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .drawer-head {
+    align-items: stretch;
+    flex-direction: column;
+    position: static;
+    padding: 8px 6px;
+  }
+
+  .drawer-meta {
+    white-space: normal;
+  }
+
+  .drawer-totals {
+    margin-right: 0;
+  }
+
+  .total-card,
+  .total-card--overall {
+    min-width: 0;
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .total-value {
+    font-size: 16px;
+  }
+
+  .drawer-actions--compact {
+    width: 100%;
+  }
+
+  .drawer-actions--compact .el-button {
+    flex: 1;
+  }
+
+  .plan-table :deep(.el-input-number) {
+    width: 120px;
+  }
 }
 </style>

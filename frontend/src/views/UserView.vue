@@ -277,4 +277,19 @@ onBeforeUnmount(() => {
   justify-content: space-between;
 }
 
+@media (max-width: 900px) {
+  .profile-form,
+  .profile-actions {
+    max-width: 100%;
+  }
+
+  .action-row {
+    justify-content: stretch;
+  }
+
+  .action-row .el-button {
+    width: 100%;
+  }
+}
+
 </style>

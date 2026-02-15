@@ -6,6 +6,7 @@ import client, { unwrap } from '../api/client'
 import { formatDateTime, formatRange } from '../utils/formatters'
 import { useRoute } from 'vue-router'
 import { useTabsStore } from '../stores/tabs'
+import { useViewportBreakpoint } from '../composables/useViewportBreakpoint'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -18,6 +19,7 @@ const isBootstrapping = ref(true)
 const isApplyingSort = ref(false)
 const route = useRoute()
 const tabsStore = useTabsStore()
+const isCompact = useViewportBreakpoint(900)
 
 const query = reactive({
   keyword: '',
@@ -440,22 +442,26 @@ const onSortChange = (payload) => {
   <section class="page">
     <el-card class="card form-card">
       <div class="toolbar">
-        <el-input v-model="query.keyword" placeholder="搜索品类" clearable @input="onKeywordInput" />
-        <el-select v-model="query.purchase_mode" placeholder="采购模式" clearable>
-          <el-option label="每日" value="daily" />
-          <el-option label="定期" value="periodic" />
-        </el-select>
-        <el-select v-model="query.is_active" placeholder="状态" clearable style="width: 120px">
-          <el-option :value="true" label="启用" />
-          <el-option :value="false" label="已作废" />
-        </el-select>
-        <el-button type="primary" @click="onSearch">查询</el-button>
-        <el-button type="primary" plain @click="openCreate">新增品类</el-button>
+        <div class="toolbar-filters">
+          <el-input v-model="query.keyword" placeholder="搜索品类" clearable @input="onKeywordInput" />
+          <el-select v-model="query.purchase_mode" placeholder="采购模式" clearable>
+            <el-option label="每日" value="daily" />
+            <el-option label="定期" value="periodic" />
+          </el-select>
+          <el-select v-model="query.is_active" placeholder="状态" clearable class="status-select">
+            <el-option :value="true" label="启用" />
+            <el-option :value="false" label="已作废" />
+          </el-select>
+        </div>
+        <div class="toolbar-actions">
+          <el-button type="primary" @click="onSearch">查询</el-button>
+          <el-button type="primary" plain @click="openCreate">新增品类</el-button>
+        </div>
       </div>
     </el-card>
 
     <el-card class="card table-card">
-      <div class="table-shell">
+      <div v-if="!isCompact" class="table-shell">
         <el-table
           ref="categoriesTableRef"
           :data="items"
@@ -587,15 +593,48 @@ const onSortChange = (payload) => {
           </el-table-column>
         </el-table>
       </div>
+      <div v-else class="mobile-categories-list" v-loading="loading">
+        <el-empty v-if="!items.length" description="暂无品类数据" />
+        <article v-for="(item, index) in items" :key="item.id" class="mobile-category-card">
+          <header class="mobile-category-head">
+            <span class="mobile-category-name">{{ item.name }}</span>
+            <el-tag v-if="item.is_active" type="success">启用</el-tag>
+            <el-tag v-else type="info">已作废</el-tag>
+          </header>
+          <div class="mobile-category-meta">
+            <span>序号 {{ index + 1 }}</span>
+            <span>产品数 {{ item.product_count || 0 }}</span>
+            <span>采购模式 {{ item.purchase_mode === 'daily' ? '每日' : item.purchase_mode === 'periodic' ? '定期' : '-' }}</span>
+          </div>
+          <div class="mobile-category-grid">
+            <div>周期天数：{{ item.cycle_days ?? '-' }}</div>
+            <div>浮动天数：{{ item.float_days ?? '-' }}</div>
+            <div>选品数量范围：{{ formatRange(item.items_count_range) }}</div>
+            <div>更新时间：{{ formatDateTime(item.updated_at) }}</div>
+          </div>
+          <footer class="mobile-category-actions">
+            <el-button type="primary" plain @click="openEdit(item)">编辑</el-button>
+            <el-button
+              v-if="item.is_active"
+              type="danger"
+              plain
+              @click="openDeactivate(item)"
+            >
+              作废
+            </el-button>
+            <el-button v-else type="success" plain @click="onActivate(item)">启用</el-button>
+          </footer>
+        </article>
+      </div>
       <div class="table-footer">共 {{ totalCount }} 条</div>
     </el-card>
 
     <el-dialog
       v-model="editOpen"
       :title="editMode === 'create' ? '新增品类' : '编辑品类'"
-      width="520px"
+      :width="isCompact ? '92vw' : '520px'"
     >
-      <el-form label-position="left" label-width="120px">
+      <el-form :label-position="isCompact ? 'top' : 'left'" :label-width="isCompact ? 'auto' : '120px'">
         <el-form-item label="品类名称">
           <el-input v-model="editForm.name" @blur="validateName" />
           <div v-if="editErrors.name" class="field-error">{{ editErrors.name }}</div>
@@ -670,7 +709,7 @@ const onSortChange = (payload) => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="deactivateOpen" title="作废品类" width="480px">
+    <el-dialog v-model="deactivateOpen" title="作废品类" :width="isCompact ? '92vw' : '480px'">
       <div class="deactivate-body">
         <p>将品类“{{ deactivateForm.name }}”设置为作废状态。</p>
         <p v-if="deactivateForm.product_count > 0" class="warning">
@@ -698,6 +737,38 @@ const onSortChange = (payload) => {
 </template>
 
 <style scoped>
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.toolbar-filters {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-filters .el-input {
+  width: 220px;
+}
+
+.toolbar-filters .el-select {
+  width: 180px;
+}
+
+.status-select {
+  width: 120px !important;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
 .deactivate-body {
   display: grid;
   gap: 8px;
@@ -720,6 +791,80 @@ const onSortChange = (payload) => {
   line-height: 1.4;
   font-size: 12px;
   color: #f56c6c;
+}
+
+.mobile-categories-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-category-card {
+  border: 1px solid rgba(201, 164, 74, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-category-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-category-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mobile-category-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mobile-category-grid {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.mobile-category-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-filters .el-input,
+  .toolbar-filters .el-select,
+  .status-select {
+    width: 100% !important;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions .el-button {
+    flex: 1;
+  }
 }
 
 </style>
