@@ -65,6 +65,24 @@ test.describe("Auth", () => {
     await expect(page.locator(".el-message--error").first()).toContainText("账号或密码错误");
   });
 
+  test("数据库连接失败时仅显示一次错误提示", async ({ page }) => {
+    await page.route(/.*\/api\/auth\/login$/, async (route) => {
+      return route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ code: 5000, message: "数据库连接失败" }),
+      });
+    });
+
+    await page.goto("/login");
+    await page.getByRole("button", { name: "登录" }).click();
+
+    await expect(page).toHaveURL(/\/login/);
+    const messages = page.locator(".el-message--error");
+    await expect(messages).toHaveCount(1);
+    await expect(messages.first()).toContainText("数据库连接失败");
+  });
+
   test("退出后登录页回填当前登录账号密码", async ({ page }) => {
     await mockAuthApis(page, {
       user: { id: "u2", username: "zhangqian", full_name: "张千", name: "张千" },
