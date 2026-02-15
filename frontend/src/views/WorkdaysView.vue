@@ -222,15 +222,16 @@ watch(
 
 .calendar-today {
   position: absolute;
-  bottom: 6px;
-  left: 6px;
-  font-size: 11px;
-  color: #7a5a18;
-  padding: 2px 6px;
+  bottom: 4px;
+  right: 4px;
+  font-size: 10px;
+  color: #8a6a24;
+  padding: 1px 4px;
   border-radius: 999px;
-  background: rgba(255, 231, 168, 0.9);
-  border: 1px solid rgba(201, 164, 74, 0.35);
+  background: rgba(255, 231, 168, 0.78);
+  border: 1px solid rgba(201, 164, 74, 0.26);
   line-height: 1;
+  font-weight: 500;
 }
 
 .calendar-cell.workday .calendar-mark {
@@ -265,9 +266,10 @@ watch(
   }
 
   .workdays-body--compact .calendar-today {
-    bottom: 4px;
-    left: 4px;
-    padding: 1px 4px;
+    bottom: 3px;
+    right: 4px;
+    font-size: 9px;
+    padding: 1px 3px;
   }
 }
 </style>
