@@ -21,7 +21,7 @@ export default defineConfig({
     },
     {
       name: "tablet",
-      testMatch: /.*(smoke-matrix|mobile-shell)\.spec\.ts/,
+      testMatch: /.*(smoke-matrix|mobile-shell|visual-smoke)\.spec\.ts/,
       use: {
         viewport: { width: 1024, height: 1366 },
         isMobile: true,
@@ -30,7 +30,7 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      testMatch: /.*(smoke-matrix|mobile-shell)\.spec\.ts/,
+      testMatch: /.*(smoke-matrix|mobile-shell|visual-smoke)\.spec\.ts/,
       use: {
         ...devices["iPhone 12"],
       },
