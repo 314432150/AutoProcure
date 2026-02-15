@@ -41,5 +41,21 @@ test.describe("Mobile Shell Smoke", () => {
     await expect(page.locator(".layout > .sidenav")).toHaveCount(1);
     await expect(page.locator(".menu-toggle")).toHaveCount(0);
   });
-});
 
+  test("窄屏使用卡片列表并保持主操作可用", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await setupMocks(page);
+
+    await page.goto("/plans");
+    await expect(page.locator(".mobile-plan-card").first()).toBeVisible();
+    await page.getByRole("button", { name: "编辑明细" }).first().click();
+    await expect(page).toHaveURL(/\/plans\/\d{4}-\d{2}-\d{2}/);
+
+    await page.locator(".menu-toggle").click();
+    await page.getByRole("menuitem", { name: /产品库/ }).click();
+    await expect(page).toHaveURL(/\/products/);
+    await expect(page.locator(".mobile-product-card").first()).toBeVisible();
+    await page.getByRole("button", { name: "新增产品" }).click();
+    await expect(page.getByRole("dialog", { name: "新增产品" })).toBeVisible();
+  });
+});

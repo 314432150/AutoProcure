@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { Edit, InfoFilled } from "@element-plus/icons-vue";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
 
 const props = defineProps({
   items: {
@@ -52,6 +53,7 @@ const emit = defineEmits([
   "restore",
   "page-change",
 ]);
+const isCompact = useViewportBreakpoint(900);
 
 const tableRef = ref(null);
 defineExpose({
@@ -60,11 +62,18 @@ defineExpose({
 
 const indexMethod = (index) =>
   (Number(props.query.page) - 1) * Number(props.query.page_size) + index + 1;
+
+const mobileItems = computed(() =>
+  (props.items || []).map((item, index) => ({
+    ...item,
+    rowIndex: indexMethod(index),
+  })),
+);
 </script>
 
 <template>
   <el-card class="card table-card">
-    <div class="table-shell">
+    <div v-if="!isCompact" class="table-shell">
       <el-table
         ref="tableRef"
         :data="items"
@@ -184,10 +193,48 @@ const indexMethod = (index) =>
         </el-table-column>
       </el-table>
     </div>
+    <div v-else class="mobile-products-list" v-loading="loading">
+      <el-empty v-if="!mobileItems.length" description="暂无产品数据" />
+      <article v-for="item in mobileItems" :key="item.id" class="mobile-product-card">
+        <header class="mobile-product-head">
+          <span class="mobile-product-name">{{ item.name }}</span>
+          <el-tag v-if="!item.is_deleted" type="success">启用</el-tag>
+          <el-tag v-else type="info">已作废</el-tag>
+        </header>
+        <div class="mobile-product-meta">
+          <span>序号 {{ item.rowIndex }}</span>
+          <span>品类 {{ item.category_name || "-" }}</span>
+          <span>单位 {{ item.unit || "-" }}</span>
+        </div>
+        <div class="mobile-product-grid">
+          <div>单价：{{ item.base_price ?? "-" }}</div>
+          <div>波动：{{ formatVolatility(item.volatility) }}</div>
+          <div>数量范围：{{ formatRange(item.item_quantity_range) }}</div>
+          <div>更新时间：{{ formatDateTime(item.updated_at) }}</div>
+        </div>
+        <footer class="mobile-product-actions">
+          <el-button type="primary" plain @click="emit('edit', item)">
+            编辑
+            <el-icon class="el-icon--right"><Edit /></el-icon>
+          </el-button>
+          <el-button
+            v-if="item.is_deleted"
+            type="success"
+            plain
+            @click="emit('restore', item)"
+          >
+            启用
+          </el-button>
+          <el-button v-else type="danger" plain @click="emit('delete', item)">
+            作废
+          </el-button>
+        </footer>
+      </article>
+    </div>
     <div class="pager">
       <div class="pager-total">共 {{ total }} 条</div>
       <el-pagination
-        layout="prev, pager, next"
+        :layout="isCompact ? 'prev, next' : 'prev, pager, next'"
         :page-size="query.page_size"
         :total="total"
         v-model:current-page="query.page"
@@ -206,5 +253,56 @@ const indexMethod = (index) =>
 .pager-total {
   color: #666;
   font-size: 12px;
+}
+
+.mobile-products-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-product-card {
+  border: 1px solid rgba(201, 164, 74, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-product-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-product-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mobile-product-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mobile-product-grid {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.mobile-product-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>

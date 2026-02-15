@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { Edit } from "@element-plus/icons-vue";
 import { formatDateTime, formatMoney } from "@/utils/formatters";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -14,6 +15,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["row-dblclick"]);
+const isCompact = useViewportBreakpoint(900);
 
 /** 格式化年月显示，缺省时使用默认年月 */
 const formatYearMonth = (value) => {
@@ -103,7 +105,7 @@ const formatWarningDetail = (warnings = []) => {
 
 <template>
   <!-- 组件说明：采购计划列表表格，支持合并年月与汇总行 -->
-  <div class="table-shell">
+  <div v-if="!isCompact" class="table-shell">
       <el-table
         :data="items"
         v-loading="loading"
@@ -167,6 +169,36 @@ const formatWarningDetail = (warnings = []) => {
       </el-table-column>
       </el-table>
     </div>
+    <div v-else class="mobile-plan-list" v-loading="loading">
+      <el-empty v-if="!items.length" description="暂无计划数据" />
+      <article v-for="(item, index) in items" :key="item.date" class="mobile-plan-card">
+        <header class="mobile-plan-head">
+          <span class="mobile-plan-date">{{ item.date }}</span>
+          <el-tag type="danger" effect="plain">{{ formatAmount(item.total_amount) }} 元</el-tag>
+        </header>
+        <div class="mobile-plan-meta">
+          <span>序号 {{ index + 1 }}</span>
+          <span>年月 {{ formatYearMonth(item.year_month) }}</span>
+        </div>
+        <div class="mobile-plan-warning">
+          <div class="warning-label">预算警告原因</div>
+          <div class="warning-text">{{ formatWarningSummary(item.warnings || []) }}</div>
+        </div>
+        <div class="mobile-plan-warning">
+          <div class="warning-label">预算警告说明</div>
+          <div class="warning-text">{{ formatWarningDetail(item.warnings || []) }}</div>
+        </div>
+        <footer class="mobile-plan-actions">
+          <el-button type="primary" plain @click="emit('row-dblclick', item)">
+            编辑明细
+            <el-icon class="el-icon--right"><Edit /></el-icon>
+          </el-button>
+          <span v-if="showUpdatedAt" class="mobile-plan-updated">
+            {{ formatDateTime(item.updated_at) }}
+          </span>
+        </footer>
+      </article>
+    </div>
     <div class="plan-summary">
       <span>共 {{ total }} 条</span>
       <span v-if="monthTotal !== null">{{ totalLabel }}：{{ formatAmount(monthTotal) }} 元</span>
@@ -181,5 +213,70 @@ const formatWarningDetail = (warnings = []) => {
   justify-content: space-between;
   gap: 12px;
   color: var(--muted);
+}
+
+.mobile-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+
+.mobile-plan-card {
+  border: 1px solid rgba(201, 164, 74, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-plan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-plan-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mobile-plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mobile-plan-warning {
+  display: grid;
+  gap: 2px;
+}
+
+.warning-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.warning-text {
+  color: var(--ink);
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.mobile-plan-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-plan-updated {
+  color: var(--muted);
+  font-size: 12px;
 }
 </style>

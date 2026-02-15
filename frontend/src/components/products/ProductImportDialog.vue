@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref, watch } from "vue";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
+
+const isCompact = useViewportBreakpoint(900);
 
 const props = defineProps({
   open: {
@@ -189,7 +192,8 @@ watch(
   <el-dialog
     :model-value="open"
     title="导入产品库"
-    width="720px"
+    :width="isCompact ? '96vw' : '720px'"
+    :fullscreen="isCompact"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     :show-close="true"
@@ -307,7 +311,7 @@ watch(
     <el-drawer
       v-model="detailDrawerOpen"
       direction="rtl"
-      size="50%"
+      :size="isCompact ? '90%' : '50%'"
       title="导入详情"
     >
       <el-tabs v-model="detailTab">
@@ -465,6 +469,12 @@ watch(
 }
 @media (max-width: 960px) {
   .import-block {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .import-summary {
     grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,8 @@
 <script setup>
 import { InfoFilled } from "@element-plus/icons-vue";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
+
+const isCompact = useViewportBreakpoint(900);
 defineProps({
   open: {
     type: Boolean,
@@ -59,11 +62,11 @@ const emit = defineEmits([
   <el-dialog
     :model-value="open"
     :title="mode === 'create' ? '新增产品' : '修改产品'"
-    width="520px"
+    :width="isCompact ? '92vw' : '520px'"
     class="product-dialog"
     @update:model-value="(value) => emit('update:open', value)"
   >
-    <el-form label-position="left" label-width="120px" class="product-edit-form">
+    <el-form :label-position="isCompact ? 'top' : 'left'" :label-width="isCompact ? 'auto' : '120px'" class="product-edit-form">
       <el-form-item label="名称">
         <el-input
           v-model="editForm.name"
@@ -229,5 +232,19 @@ const emit = defineEmits([
   line-height: 1.4;
   font-size: 12px;
   color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .product-dialog :deep(.el-dialog__body) {
+    padding-right: 18px;
+  }
+
+  .product-dialog :deep(.inline) {
+    flex-wrap: wrap;
+  }
+
+  .product-dialog :deep(.el-input-number) {
+    width: 100%;
+  }
 }
 </style>
