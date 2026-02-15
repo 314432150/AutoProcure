@@ -7,6 +7,7 @@ import { formatDateTime, formatRange } from '../utils/formatters'
 import { useRoute } from 'vue-router'
 import { useTabsStore } from '../stores/tabs'
 import { useViewportBreakpoint } from '../composables/useViewportBreakpoint'
+import { isCoarsePointerDevice } from '../utils/device'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -411,7 +412,9 @@ const onWindowKeydown = (event) => {
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', onWindowKeydown)
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener('keydown', onWindowKeydown)
+  }
 })
 
 onBeforeUnmount(() => {

@@ -1,6 +1,6 @@
 <script setup>
 /** 展示职责：只负责计划详情表格渲染与交互事件抛出 */
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { Edit, InfoFilled } from "@element-plus/icons-vue";
 import { formatMoney } from "@/utils/formatters";
 import { quantityPrecisionByUnit, quantityStepByUnit } from "@/utils/unitRules";
@@ -37,6 +37,7 @@ const emit = defineEmits([
 const activeProductRow = ref(null);
 const productFilterKeyword = ref("");
 const isCompact = useViewportBreakpoint(900);
+const compactSummaryExpanded = ref(false);
 
 /** 当计划被清空时，重置当前编辑中的产品行 */
 watch(
@@ -97,14 +98,34 @@ const onProductFilter = (keyword) => {
 const onSortChange = (payload) => {
   emit("sort-change", payload);
 };
+
+const summaryText = computed(
+  () =>
+    `总额 ${formatAmount(props.totalAmount)} | 日采 ${formatAmount(props.dailyAmount)} | 定采 ${formatAmount(props.periodicAmount)}`,
+);
+
+const toggleCompactSummary = () => {
+  compactSummaryExpanded.value = !compactSummaryExpanded.value;
+};
 </script>
 
 <template>
   <section class="detail-panel">
     <div v-if="plan" class="drawer-content">
       <div class="drawer-head">
-        <p class="drawer-meta">日期：{{ plan.date }}</p>
-        <div class="drawer-totals">
+        <div class="drawer-head-row">
+          <p class="drawer-meta">日期：{{ plan.date }}</p>
+          <button
+            v-if="isCompact"
+            type="button"
+            class="summary-toggle"
+            @click="toggleCompactSummary"
+          >
+            {{ compactSummaryExpanded ? "收起汇总" : "展开汇总" }}
+          </button>
+        </div>
+        <p v-if="isCompact" class="summary-inline">{{ summaryText }}</p>
+        <div v-if="!isCompact || compactSummaryExpanded" class="drawer-totals">
           <div class="total-card total-card--overall">
             <p class="total-label">总额</p>
             <p class="total-value">{{ formatAmount(totalAmount) }} 元</p>
@@ -131,7 +152,7 @@ const onSortChange = (payload) => {
           <el-button type="primary" :loading="saving" @click="emit('save')">保存</el-button>
         </div>
       </div>
-      <div class="table-shell plan-table">
+      <div v-if="!isCompact" class="table-shell plan-table">
         <el-table :data="items" stripe height="100%" @sort-change="onSortChange">
           <el-table-column type="index" label="序号" width="70" fixed="left" />
           <el-table-column prop="name" label="产品" min-width="150" fixed="left" sortable="custom">
@@ -242,6 +263,83 @@ const onSortChange = (payload) => {
           </el-table-column>
         </el-table>
       </div>
+      <div v-else class="mobile-detail-list">
+        <el-empty v-if="!items.length" description="暂无明细，点击“新增行”开始编辑" />
+        <article
+          v-for="(row, idx) in items"
+          :key="row.id || `${row.product_id || 'new'}-${idx}`"
+          class="mobile-detail-card"
+        >
+          <header class="mobile-detail-head">
+            <span class="mobile-detail-index">明细 {{ idx + 1 }}</span>
+            <el-button type="danger" plain @click="emit('remove-row', idx)">移除</el-button>
+          </header>
+          <div class="mobile-detail-form">
+            <div class="mobile-product-row">
+              <div class="mobile-field-label">产品</div>
+              <template v-if="productsLoading || !products.length">
+                <div class="select-loading-text">{{ row.name || "加载中…" }}</div>
+              </template>
+              <template v-else>
+                <el-select
+                  v-model="row.product_id"
+                  placeholder="选择产品"
+                  filterable
+                  :default-first-option="Boolean(productFilterKeyword.trim())"
+                  :filter-method="onProductFilter"
+                  :loading="productsLoading"
+                  @change="(value) => emit('product-change', row, value)"
+                >
+                  <el-option
+                    v-for="item in products"
+                    :key="item.id"
+                    :value="item.id"
+                    :label="item.name"
+                  />
+                </el-select>
+              </template>
+            </div>
+
+            <div class="mobile-read-grid">
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">品类</div>
+                <div class="mobile-field-value">{{ row.category_name || formatCategoryName(row.category_id) }}</div>
+              </div>
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">采购周期</div>
+                <div class="mobile-field-value">{{ formatPurchaseMode(row.category_id) }}</div>
+              </div>
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">单位</div>
+                <div class="mobile-field-value">{{ row.unit || "-" }}</div>
+              </div>
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">单价(元)</div>
+                <div class="mobile-field-value">{{ formatAmount(row.price) }}</div>
+              </div>
+            </div>
+
+            <div class="mobile-detail-grid">
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">数量</div>
+                <el-input-number
+                  :key="`${row.product_id || 'empty'}-${row.unit || ''}-mobile`"
+                  v-model="row.quantity"
+                  :min="0"
+                  :precision="quantityPrecisionByUnit(row.unit)"
+                  :step="quantityStepByUnit(row.unit)"
+                  @input="() => emit('quantity-input', row)"
+                  @blur="() => emit('quantity-blur', row)"
+                />
+              </div>
+              <div class="mobile-read-item">
+                <div class="mobile-field-label">金额(元)</div>
+                <strong class="amount-text">{{ formatAmount(row.amount) }}</strong>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
     </div>
   </section>
 </template>
@@ -275,6 +373,29 @@ const onSortChange = (payload) => {
   background: var(--card);
   padding: 12px 10px 10px;
   border-bottom: 1px solid rgba(107, 98, 86, 0.12);
+}
+
+.drawer-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.summary-toggle {
+  border: 1px solid rgba(201, 164, 74, 0.35);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.summary-inline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .drawer-totals {
@@ -401,7 +522,12 @@ const onSortChange = (payload) => {
     align-items: stretch;
     flex-direction: column;
     position: static;
-    padding: 8px 6px;
+    padding: 6px 6px 4px;
+    gap: 8px;
+  }
+
+  .drawer-head-row {
+    align-items: flex-start;
   }
 
   .drawer-meta {
@@ -410,28 +536,144 @@ const onSortChange = (payload) => {
 
   .drawer-totals {
     margin-right: 0;
+    gap: 8px;
   }
 
   .total-card,
   .total-card--overall {
     min-width: 0;
-    flex: 1 1 calc(50% - 8px);
+    flex: 1 1 calc(50% - 6px);
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+
+  .total-card--overall {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .total-card--daily {
+    order: 1;
+  }
+
+  .total-card--periodic {
+    order: 2;
   }
 
   .total-value {
-    font-size: 16px;
+    font-size: 14px;
+    margin-top: 2px;
+  }
+
+  .total-label {
+    font-size: 11px;
+  }
+
+  .total-hint {
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  .drawer-meta--status .save-state {
+    font-size: 11px;
   }
 
   .drawer-actions--compact {
     width: 100%;
+    gap: 8px;
   }
 
   .drawer-actions--compact .el-button {
     flex: 1;
+    min-height: 34px;
   }
 
   .plan-table :deep(.el-input-number) {
     width: 120px;
+  }
+
+  .mobile-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: auto;
+    padding-bottom: 8px;
+  }
+
+  .mobile-detail-card {
+    border: 1px solid rgba(201, 164, 74, 0.22);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    display: grid;
+    gap: 8px;
+  }
+
+  .mobile-detail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-detail-index {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .mobile-detail-form {
+    display: grid;
+    gap: 10px;
+  }
+
+  .mobile-field-label {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-field-value {
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .mobile-product-row {
+    display: grid;
+    gap: 4px;
+  }
+
+  .mobile-read-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+
+  .mobile-read-item {
+    min-width: 0;
+  }
+
+  .mobile-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: center;
+  }
+
+  .mobile-detail-form :deep(.el-input-number),
+  .mobile-detail-form :deep(.el-select) {
+    width: 100%;
+  }
+
+  .mobile-detail-grid .mobile-read-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 52px;
+  }
+
+  .mobile-detail-grid .mobile-field-label {
+    margin-bottom: 2px;
   }
 }
 </style>

@@ -8,6 +8,7 @@ import { useProductsPage } from "../composables/useProductsPage";
 import { useRoute } from "vue-router";
 import { useTabsStore } from "../stores/tabs";
 import { onBeforeUnmount, onMounted, watch } from "vue";
+import { isCoarsePointerDevice } from "../utils/device";
 
 const productsPage = useProductsPage();
 const route = useRoute();
@@ -93,7 +94,9 @@ const onWindowKeydown = (event) => {
 };
 
 onMounted(() => {
-  window.addEventListener("keydown", onWindowKeydown);
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener("keydown", onWindowKeydown);
+  }
 });
 
 onBeforeUnmount(() => {

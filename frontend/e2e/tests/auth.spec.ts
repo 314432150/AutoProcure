@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { clearAuthed } from "../helpers/session";
 import { mockAuthApis } from "../mocks/auth";
-import { mockCategoriesApis } from "../mocks/categories";
-import { mockProductsApis } from "../mocks/products";
+import { mockProcurementApis } from "../mocks/procurement";
 
 test.describe("Auth", () => {
   test("未登录访问受限页面会跳转到登录页", async ({ page }) => {
@@ -12,15 +11,14 @@ test.describe("Auth", () => {
     await expect(page.getByText("自动采购")).toBeVisible();
   });
 
-  test("登录成功后进入产品库", async ({ page }) => {
+  test("登录成功后进入计划生成页", async ({ page }) => {
     await mockAuthApis(page);
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page).toHaveURL(/\/products/);
-    await expect(page.getByPlaceholder("搜索名称")).toBeVisible();
+    await expect(page).toHaveURL(/\/plans/);
+    await expect(page.getByRole("button", { name: "生成计划" })).toBeVisible();
     await expect(page.locator(".el-message--success")).toContainText("登录成功");
   });
 
@@ -28,24 +26,22 @@ test.describe("Auth", () => {
     await mockAuthApis(page, {
       user: { id: "u2", username: "admin", full_name: "张三", name: "张三" },
     });
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/plans/);
     await expect(page.getByText("张三")).toBeVisible();
   });
 
   test("在密码框按回车可触发登录", async ({ page }) => {
     await mockAuthApis(page);
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.getByPlaceholder("请输入密码").press("Enter");
 
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/plans/);
     await expect(page.locator(".el-message--success")).toContainText("登录成功");
   });
 
@@ -87,14 +83,13 @@ test.describe("Auth", () => {
     await mockAuthApis(page, {
       user: { id: "u2", username: "zhangqian", full_name: "张千", name: "张千" },
     });
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.getByPlaceholder("请输入账号").fill("zhangqian");
     await page.getByPlaceholder("请输入密码").fill("zhangqian7426");
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/plans/);
 
     await page.getByRole("button", { name: "退出" }).first().click();
     await expect(page.getByRole("dialog", { name: "退出登录" })).toBeVisible();
@@ -107,34 +102,31 @@ test.describe("Auth", () => {
 
   test("勾选保持登录后重开浏览器可自动进入主页面", async ({ page, browser }) => {
     await mockAuthApis(page);
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.locator(".el-checkbox:has-text('保持登录')").click();
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/plans/);
 
     const state = await page.context().storageState();
     const context2 = await browser.newContext({ storageState: state });
     const page2 = await context2.newPage();
     await mockAuthApis(page2);
-    await mockCategoriesApis(page2);
-    await mockProductsApis(page2);
+    await mockProcurementApis(page2);
 
     await page2.goto((process.env.E2E_BASE_URL || "http://127.0.0.1:4173") + "/login");
-    await expect(page2).toHaveURL(/\/products/);
+    await expect(page2).toHaveURL(/\/plans/);
     await context2.close();
   });
 
   test("退出登录后跳转登录页并清理状态", async ({ page }) => {
     await mockAuthApis(page);
-    await mockCategoriesApis(page);
-    await mockProductsApis(page);
+    await mockProcurementApis(page);
 
     await page.goto("/login");
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/plans/);
 
     await page.getByRole("button", { name: "退出" }).first().click();
     await expect(page.getByRole("dialog", { name: "退出登录" })).toBeVisible();

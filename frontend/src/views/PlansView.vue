@@ -11,6 +11,7 @@ import PlansExportTplDialog from "@/components/plans/PlansExportTplDialog.vue";
 import { useRoute } from "vue-router";
 import { useTabsStore } from "@/stores/tabs";
 import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
+import { isCoarsePointerDevice } from "@/utils/device";
 
 const now = new Date();
 const currentYear = now.getFullYear();
@@ -355,7 +356,9 @@ const onWindowKeydown = (event) => {
 };
 
 onMounted(() => {
-  window.addEventListener("keydown", onWindowKeydown);
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener("keydown", onWindowKeydown);
+  }
 });
 
 onBeforeUnmount(() => {
