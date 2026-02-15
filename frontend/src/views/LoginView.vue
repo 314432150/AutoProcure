@@ -24,7 +24,7 @@ const onSubmit = async () => {
   if (loading.value) return
   loading.value = true
   try {
-    const resp = await client.post('/api/auth/login', form)
+    const resp = await client.post('/api/auth/login', form, { suppressError: true })
     const data = unwrap(resp)
     auth.setSession(data.token, data.user_info, rememberMe.value)
     localStorage.setItem(LAST_USERNAME_KEY, form.username)

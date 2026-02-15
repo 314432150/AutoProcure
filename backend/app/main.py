@@ -8,6 +8,7 @@ from typing import Any
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException
+from pymongo.errors import PyMongoError
 
 from app.core import error_codes
 from app.core.middleware import PermissionMiddleware
@@ -42,6 +43,7 @@ async def http_exception_handler(_, exc: HTTPException) -> JSONResponse:
         404: error_codes.NOT_FOUND,
         409: error_codes.CONFLICT,
         500: error_codes.SYSTEM_ERROR,
+        503: error_codes.SYSTEM_ERROR,
         502: error_codes.WORKDAY_API_ERROR,
     }
     business_mapping = {
@@ -72,6 +74,15 @@ async def unhandled_exception_handler(_, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=500,
         content={"code": error_codes.SYSTEM_ERROR, "message": "服务器内部错误"},
+    )
+
+
+@app.exception_handler(PyMongoError)
+async def pymongo_exception_handler(_, exc: PyMongoError) -> JSONResponse:
+    """统一处理数据库连接或查询异常。"""
+    return JSONResponse(
+        status_code=503,
+        content={"code": error_codes.SYSTEM_ERROR, "message": "数据库连接失败"},
     )
 
 
