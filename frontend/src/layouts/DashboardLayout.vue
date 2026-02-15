@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import SideNav from '../components/SideNav.vue'
@@ -13,6 +13,8 @@ const ONBOARDING_DONE_KEY = 'autoprocure:onboarding:done:v1'
 
 const guideVisible = ref(false)
 const guideStep = ref(0)
+const navDrawerOpen = ref(false)
+const isMobile = ref(false)
 const guideSteps = [
   {
     title: '先完善品类库',
@@ -110,6 +112,23 @@ const openGuide = () => {
   guideVisible.value = true
 }
 
+const updateViewportMode = () => {
+  isMobile.value = window.innerWidth <= 1024
+  if (!isMobile.value) {
+    navDrawerOpen.value = false
+  }
+}
+
+const onToggleMenu = () => {
+  navDrawerOpen.value = !navDrawerOpen.value
+}
+
+const onSideNavSelect = () => {
+  if (isMobile.value) {
+    navDrawerOpen.value = false
+  }
+}
+
 const finishGuide = () => {
   localStorage.setItem(ONBOARDING_DONE_KEY, '1')
   guideVisible.value = false
@@ -134,6 +153,8 @@ const nextGuideStep = () => {
 }
 
 onMounted(() => {
+  updateViewportMode()
+  window.addEventListener('resize', updateViewportMode)
   const isBot = Boolean(navigator.webdriver)
   const hasDone = localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
   if (!isBot && !hasDone) {
@@ -141,10 +162,17 @@ onMounted(() => {
   }
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewportMode)
+})
+
 
 watch(
   () => route.fullPath,
   () => {
+    if (isMobile.value) {
+      navDrawerOpen.value = false
+    }
     syncTabFromRoute()
   },
   { immediate: true },
@@ -153,10 +181,20 @@ watch(
 
 <template>
   <!-- 组件说明：后台布局，包含侧边栏、顶部栏与内容区 -->
-  <div class="layout">
-    <SideNav />
+  <div class="layout" :class="{ 'layout--mobile': isMobile }">
+    <SideNav v-if="!isMobile" />
+    <el-drawer
+      v-else
+      v-model="navDrawerOpen"
+      direction="ltr"
+      size="280px"
+      :with-header="false"
+      class="layout-nav-drawer"
+    >
+      <SideNav mobile @select="onSideNavSelect" />
+    </el-drawer>
     <div class="layout-main">
-      <TopBar>
+      <TopBar :show-menu-button="isMobile" @toggle-menu="onToggleMenu">
         <template #extra-actions>
           <el-button class="guide-entry" type="primary" @click="openGuide">新手引导</el-button>
         </template>
@@ -197,7 +235,7 @@ watch(
     </div>
     <el-dialog
       v-model="guideVisible"
-      width="560px"
+      :width="isMobile ? '92vw' : '560px'"
       align-center
       :close-on-click-modal="false"
       title="系统使用引导"
@@ -233,6 +271,10 @@ watch(
   align-items: start;
   height: 100vh;
   overflow: hidden;
+}
+
+.layout-nav-drawer :deep(.el-drawer__body) {
+  padding: 10px;
 }
 
 .layout-main {
@@ -415,6 +457,27 @@ watch(
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    padding: 12px;
+    gap: 12px;
+    height: 100dvh;
+  }
+
+  .layout-main {
+    gap: 10px;
+  }
+
+  .layout-content {
+    padding-right: 0;
+  }
+
+  .guide-footer {
+    justify-content: stretch;
+    flex-wrap: wrap;
   }
 }
 </style>

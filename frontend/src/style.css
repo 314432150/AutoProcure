@@ -242,3 +242,15 @@ a {
     width: 100%;
   }
 }
+
+@media (max-width: 1024px) {
+  body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app {
+    overflow: auto;
+    min-height: 100dvh;
+  }
+}
