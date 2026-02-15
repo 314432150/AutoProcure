@@ -36,6 +36,8 @@ const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
 const calendarWeeks = computed(() => {
   const year = query.year
   const month = query.month
+  const today = new Date()
+  const todayText = formatDay(today.getFullYear(), today.getMonth() + 1, today.getDate())
   const firstDay = new Date(year, month - 1, 1)
   const lastDay = new Date(year, month, 0)
   /** 计算日历首行的空白偏移 */
@@ -53,6 +55,7 @@ const calendarWeeks = computed(() => {
       day: dayNumber,
       date,
       isWorkday: workdaySet.has(date),
+      isToday: date === todayText,
     }
   })
   const weeks = []
@@ -107,6 +110,7 @@ watch(
             >
               <el-tooltip v-if="cell" :content="cell.date" placement="top">
                 <div class="calendar-content">
+                  <span v-if="cell.isToday" class="calendar-today">今</span>
                   <span v-if="cell.isWorkday" class="calendar-mark">班</span>
                   <span class="calendar-day">{{ cell.day }}</span>
                 </div>
@@ -216,6 +220,19 @@ watch(
   line-height: 1;
 }
 
+.calendar-today {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 11px;
+  color: #7a5a18;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 231, 168, 0.9);
+  border: 1px solid rgba(201, 164, 74, 0.35);
+  line-height: 1;
+}
+
 .calendar-cell.workday .calendar-mark {
   color: #8f0000;
   background: rgba(255, 224, 224, 0.85);
@@ -244,6 +261,12 @@ watch(
   .workdays-body--compact .calendar-mark {
     top: 4px;
     right: 4px;
+    padding: 1px 4px;
+  }
+
+  .workdays-body--compact .calendar-today {
+    bottom: 4px;
+    left: 4px;
     padding: 1px 4px;
   }
 }
