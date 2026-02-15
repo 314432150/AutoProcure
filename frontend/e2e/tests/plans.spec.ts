@@ -6,7 +6,21 @@ import { json } from "../mocks/utils";
 
 const openPlans = async (page: Page) => {
   await page.goto("/plans");
-  await expect(page.getByRole("columnheader", { name: "日期" })).toBeVisible();
+  await expect(page.getByText("2026-01-02")).toBeVisible();
+};
+
+const openPlanActionMenu = async (page: Page) => {
+  const group = page.locator(".split-action", {
+    has: page.getByRole("button", { name: "生成计划" }),
+  });
+  await group.locator(".split-trigger").click();
+};
+
+const openExportActionMenu = async (page: Page) => {
+  const group = page.locator(".split-action", {
+    has: page.getByRole("button", { name: "导出Excel" }),
+  });
+  await group.locator(".split-trigger").click();
 };
 
 test.describe("PlansView", () => {
@@ -20,7 +34,7 @@ test.describe("PlansView", () => {
     await expect(page.getByText("2026-01-02")).toBeVisible();
     await expect(page.getByText("共 2 条")).toBeVisible();
     await expect(page.getByText("共 1 条预算不可行提示")).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "日期" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "生成计划" })).toBeVisible();
   });
 
   test("选择起止年月，列表刷新", async ({ page }) => {
@@ -115,7 +129,7 @@ test.describe("PlansView", () => {
   });
 
   test("预算设置校验与保存", async ({ page }) => {
-    await page.getByRole("button", { name: "生成计划" }).hover();
+    await openPlanActionMenu(page);
     await page.getByRole("menuitem", { name: "预算设置" }).click();
     await expect(page.getByRole("dialog", { name: "预算设置" })).toBeVisible();
 
@@ -134,7 +148,7 @@ test.describe("PlansView", () => {
   });
 
   test("预算设置取消关闭", async ({ page }) => {
-    await page.getByRole("button", { name: "生成计划" }).hover();
+    await openPlanActionMenu(page);
     await page.getByRole("menuitem", { name: "预算设置" }).click();
     await expect(page.getByRole("dialog", { name: "预算设置" })).toBeVisible();
     await page.getByRole("button", { name: "取消" }).click();
@@ -142,7 +156,7 @@ test.describe("PlansView", () => {
   });
 
   test("模板编辑保存成功", async ({ page }) => {
-    await page.getByRole("button", { name: "导出Excel" }).hover();
+    await openExportActionMenu(page);
     await page.getByRole("menuitem", { name: "模板编辑" }).click();
     await expect(page.getByRole("dialog", { name: "导出设置" })).toBeVisible();
 
@@ -172,7 +186,7 @@ test.describe("PlansView", () => {
     });
     await openPlans(page);
 
-    await page.getByRole("button", { name: "导出Excel" }).hover();
+    await openExportActionMenu(page);
     await page.getByRole("menuitem", { name: "模板编辑" }).click();
     await expect(page.getByRole("dialog", { name: "导出设置" })).toBeVisible();
 
@@ -183,5 +197,10 @@ test.describe("PlansView", () => {
   test("列表行双击进入详情页", async ({ page }) => {
     await page.getByText("2026-01-02").dblclick();
     await expect(page).toHaveURL(/\/plans\/2026-01-02/);
+  });
+
+  test("点击导出主按钮不会同时弹出下拉菜单", async ({ page }) => {
+    await page.getByRole("button", { name: "导出Excel" }).click();
+    await expect(page.getByRole("menuitem", { name: "模板编辑" })).toHaveCount(0);
   });
 });

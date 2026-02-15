@@ -242,3 +242,34 @@ a {
     width: 100%;
   }
 }
+
+@media (max-width: 1180px) {
+  body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app {
+    overflow: auto;
+    min-height: 100dvh;
+  }
+}
+
+@media (pointer: coarse) {
+  .el-button {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .el-input__wrapper,
+  .el-input-number__wrapper,
+  .el-select__wrapper {
+    min-height: 36px;
+  }
+
+  .el-input__inner,
+  .el-input-number__input {
+    font-size: 13px;
+  }
+}

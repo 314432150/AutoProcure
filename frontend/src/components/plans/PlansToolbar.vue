@@ -26,50 +26,62 @@ const emit = defineEmits([
 <template>
   <el-card class="card form-card">
     <div class="form-grid">
-      <div class="date-row">
-        <span class="date-label">起始</span>
-        <YearMonthSelect
-          :year="props.startYear"
-          :month="props.startMonth"
-          @update:year="(value) => emit('update:startYear', value)"
-          @update:month="(value) => emit('update:startMonth', value)"
-        />
-        <span class="date-divider">至</span>
-        <span class="date-label">结束</span>
-        <YearMonthSelect
-          :year="props.endYear"
-          :month="props.endMonth"
-          @update:year="(value) => emit('update:endYear', value)"
-          @update:month="(value) => emit('update:endMonth', value)"
-        />
+      <div class="filter-block">
+        <div class="date-row">
+          <div class="date-item">
+            <span class="date-label">起始</span>
+            <YearMonthSelect
+              :year="props.startYear"
+              :month="props.startMonth"
+              @update:year="(value) => emit('update:startYear', value)"
+              @update:month="(value) => emit('update:startMonth', value)"
+            />
+          </div>
+          <span class="date-divider">至</span>
+          <div class="date-item">
+            <span class="date-label">结束</span>
+            <YearMonthSelect
+              :year="props.endYear"
+              :month="props.endMonth"
+              @update:year="(value) => emit('update:endYear', value)"
+              @update:month="(value) => emit('update:endMonth', value)"
+            />
+          </div>
+        </div>
       </div>
-      <el-dropdown @command="(command) => emit('plan-action', command)">
-        <el-button type="primary" plain @click="emit('generate')">
-          生成计划
-          <el-icon class="el-icon--right">
-            <ArrowDown />
-          </el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="budget">预算设置</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <el-dropdown @command="(command) => emit('export-action', command)">
-        <el-button type="primary" plain :loading="exportLoading" @click="emit('export')">
-          导出Excel
-          <el-icon class="el-icon--right">
-            <ArrowDown />
-          </el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="template">模板编辑</el-dropdown-item>
-            <el-dropdown-item command="precision">精度设置</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <div class="action-block">
+        <el-button-group class="split-action">
+          <el-button type="primary" plain @click="emit('generate')">
+            生成计划
+          </el-button>
+          <el-dropdown trigger="click" @command="(command) => emit('plan-action', command)">
+            <el-button type="primary" plain class="split-trigger">
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="budget">预算设置</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </el-button-group>
+        <el-button-group class="split-action">
+          <el-button type="primary" plain :loading="exportLoading" @click="emit('export')">
+            导出Excel
+          </el-button>
+          <el-dropdown trigger="click" @command="(command) => emit('export-action', command)">
+            <el-button type="primary" plain class="split-trigger">
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="template">模板编辑</el-dropdown-item>
+                <el-dropdown-item command="precision">精度设置</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </el-button-group>
+      </div>
     </div>
     <el-alert
       v-if="warningCount"
@@ -90,9 +102,29 @@ const emit = defineEmits([
 <style scoped>
 .form-grid {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
+  align-items: flex-start;
+}
+
+.filter-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.action-block {
+  display: flex;
   align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.split-action {
+  display: inline-flex;
+}
+
+.split-trigger {
+  padding: 0 10px;
 }
 
 .date-row {
@@ -100,6 +132,12 @@ const emit = defineEmits([
   flex-wrap: nowrap;
   gap: 10px;
   align-items: center;
+}
+
+.date-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .form-grid :deep(.el-input-number),
@@ -125,6 +163,43 @@ const emit = defineEmits([
   .form-grid {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .action-block {
+    width: 100%;
+  }
+
+  .action-block .split-action {
+    flex: 1;
+    display: flex;
+  }
+
+  .action-block .split-action > .el-button {
+    flex: 1;
+  }
+
+  .action-block .split-action :deep(.el-dropdown),
+  .action-block .split-action :deep(.el-dropdown .el-button) {
+    flex: 0 0 auto;
+  }
+
+  .date-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .date-item {
+    width: 100%;
+  }
+
+  .date-item :deep(.ym-select) {
+    flex: 1;
+  }
+
+  .date-divider {
+    display: none;
   }
 }
 </style>

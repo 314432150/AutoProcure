@@ -10,12 +10,15 @@ import PlansToolbar from "@/components/plans/PlansToolbar.vue";
 import PlansExportTplDialog from "@/components/plans/PlansExportTplDialog.vue";
 import { useRoute } from "vue-router";
 import { useTabsStore } from "@/stores/tabs";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
+import { isCoarsePointerDevice } from "@/utils/device";
 
 const now = new Date();
 const currentYear = now.getFullYear();
 const router = useRouter();
 const route = useRoute();
 const tabsStore = useTabsStore();
+const isCompact = useViewportBreakpoint(900);
 
 const generateForm = reactive({
   start_year: currentYear,
@@ -353,7 +356,9 @@ const onWindowKeydown = (event) => {
 };
 
 onMounted(() => {
-  window.addEventListener("keydown", onWindowKeydown);
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener("keydown", onWindowKeydown);
+  }
 });
 
 onBeforeUnmount(() => {
@@ -445,7 +450,12 @@ watch(
       />
     </el-card>
 
-    <el-dialog v-model="exportSettingsOpen" title="导出设置" width="80%">
+    <el-dialog
+      v-model="exportSettingsOpen"
+      title="导出设置"
+      :width="isCompact ? '96vw' : '80%'"
+      :fullscreen="isCompact"
+    >
       <el-tabs v-model="exportSettingsTab">
         <el-tab-pane label="模板编辑" name="template">
           <PlansExportTplDialog
@@ -488,7 +498,7 @@ watch(
       </el-tabs>
     </el-dialog>
 
-    <el-dialog v-model="budgetDialogOpen" title="预算设置" width="440">
+    <el-dialog v-model="budgetDialogOpen" title="预算设置" :width="isCompact ? '92vw' : '440px'">
       <div class="budget-panel">
         <div class="budget-title">日预算区间(元)</div>
         <div class="budget-row">
@@ -578,5 +588,28 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .budget-row {
+    flex-wrap: wrap;
+  }
+
+  .budget-panel :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .precision-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .precision-actions {
+    justify-content: stretch;
+  }
+
+  .precision-actions .el-button {
+    flex: 1;
+  }
 }
 </style>

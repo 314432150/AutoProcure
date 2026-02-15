@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import SideNav from '../components/SideNav.vue'
@@ -10,9 +10,13 @@ const route = useRoute()
 const router = useRouter()
 const tabsStore = useTabsStore()
 const ONBOARDING_DONE_KEY = 'autoprocure:onboarding:done:v1'
+const MOBILE_BREAKPOINT = 1180
 
 const guideVisible = ref(false)
 const guideStep = ref(0)
+const navDrawerOpen = ref(false)
+const isMobile = ref(false)
+const mobileTabsRef = ref(null)
 const guideSteps = [
   {
     title: '先完善品类库',
@@ -78,6 +82,11 @@ const onTabClick = (tab) => {
   }
 }
 
+const onMobileTabClick = (path) => {
+  if (!path || path === route.fullPath) return
+  router.push(path)
+}
+
 const onTabRemove = async (targetPath) => {
   if (!targetPath) return
   if (tabsStore.isDirty(targetPath)) {
@@ -105,9 +114,38 @@ const onTabRemove = async (targetPath) => {
   }, 0)
 }
 
+const scrollMobileActiveTabIntoView = () => {
+  if (!isMobile.value) return
+  nextTick(() => {
+    const container = mobileTabsRef.value
+    if (!container) return
+    const active = container.querySelector('.mobile-tab-chip.is-active')
+    if (!active || typeof active.scrollIntoView !== 'function') return
+    active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  })
+}
+
 const openGuide = () => {
   guideStep.value = 0
   guideVisible.value = true
+}
+
+const updateViewportMode = () => {
+  const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth)
+  isMobile.value = viewportWidth <= MOBILE_BREAKPOINT
+  if (!isMobile.value) {
+    navDrawerOpen.value = false
+  }
+}
+
+const onToggleMenu = () => {
+  navDrawerOpen.value = !navDrawerOpen.value
+}
+
+const onSideNavSelect = () => {
+  if (isMobile.value) {
+    navDrawerOpen.value = false
+  }
 }
 
 const finishGuide = () => {
@@ -134,6 +172,12 @@ const nextGuideStep = () => {
 }
 
 onMounted(() => {
+  updateViewportMode()
+  requestAnimationFrame(updateViewportMode)
+  setTimeout(updateViewportMode, 0)
+  window.addEventListener('resize', updateViewportMode)
+  window.addEventListener('orientationchange', updateViewportMode)
+  window.visualViewport?.addEventListener('resize', updateViewportMode)
   const isBot = Boolean(navigator.webdriver)
   const hasDone = localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
   if (!isBot && !hasDone) {
@@ -141,28 +185,55 @@ onMounted(() => {
   }
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewportMode)
+  window.removeEventListener('orientationchange', updateViewportMode)
+  window.visualViewport?.removeEventListener('resize', updateViewportMode)
+})
+
 
 watch(
   () => route.fullPath,
   () => {
+    if (isMobile.value) {
+      navDrawerOpen.value = false
+    }
     syncTabFromRoute()
   },
   { immediate: true },
+)
+
+watch(
+  () => [isMobile.value, route.fullPath, tabPanes.value.length],
+  () => {
+    scrollMobileActiveTabIntoView()
+  },
 )
 </script>
 
 <template>
   <!-- 组件说明：后台布局，包含侧边栏、顶部栏与内容区 -->
-  <div class="layout">
-    <SideNav />
+  <div class="layout" :class="{ 'layout--mobile': isMobile }">
+    <SideNav v-if="!isMobile" />
+    <el-drawer
+      v-else
+      v-model="navDrawerOpen"
+      direction="ltr"
+      size="280px"
+      :with-header="false"
+      class="layout-nav-drawer"
+    >
+      <SideNav mobile @select="onSideNavSelect" />
+    </el-drawer>
     <div class="layout-main">
-      <TopBar>
+      <TopBar :show-menu-button="isMobile" @toggle-menu="onToggleMenu">
         <template #extra-actions>
           <el-button class="guide-entry" type="primary" @click="openGuide">新手引导</el-button>
         </template>
       </TopBar>
       <div class="layout-tabs">
         <el-tabs
+          v-if="!isMobile"
           v-model="activeTab"
           type="card"
           closable
@@ -186,6 +257,26 @@ watch(
             </template>
           </el-tab-pane>
         </el-tabs>
+        <div v-else ref="mobileTabsRef" class="mobile-tabs-strip">
+          <button
+            v-for="item in tabPanes"
+            :key="item.path"
+            type="button"
+            class="mobile-tab-chip"
+            :class="{ 'is-active': item.path === route.fullPath }"
+            @click="onMobileTabClick(item.path)"
+          >
+            <span class="tab-dirty" :class="{ 'tab-dirty--on': tabsStore.isDirty(item.path) }"></span>
+            <span class="tab-text">{{ item.title }}</span>
+            <span
+              v-if="item.closable !== false && item.path === route.fullPath"
+              class="mobile-tab-close"
+              @click.stop="onTabRemove(item.path)"
+            >
+              x
+            </span>
+          </button>
+        </div>
       </div>
       <main class="layout-content">
         <router-view v-slot="{ Component, route: viewRoute }">
@@ -197,7 +288,7 @@ watch(
     </div>
     <el-dialog
       v-model="guideVisible"
-      width="560px"
+      :width="isMobile ? '92vw' : '560px'"
       align-center
       :close-on-click-modal="false"
       title="系统使用引导"
@@ -233,6 +324,11 @@ watch(
   align-items: start;
   height: 100vh;
   overflow: hidden;
+  min-width: 0;
+}
+
+.layout-nav-drawer :deep(.el-drawer__body) {
+  padding: 10px;
 }
 
 .layout-main {
@@ -240,16 +336,72 @@ watch(
   grid-template-rows: auto auto 1fr;
   gap: 16px;
   min-height: 0;
+  min-width: 0;
   height: 100%;
 }
 
 .layout-tabs {
   padding: 0 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-tabs-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.mobile-tabs-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.mobile-tab-chip {
+  border: 1px solid rgba(201, 164, 74, 0.2);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
+  border-radius: 999px;
+  height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  scroll-snap-align: center;
+  flex: 0 0 auto;
+  max-width: 180px;
+  cursor: pointer;
+}
+
+.mobile-tab-chip.is-active {
+  color: #3a1a10;
+  background: linear-gradient(135deg, #fff1dc 0%, #ffd8b5 100%);
+  border-color: rgba(201, 164, 74, 0.45);
+}
+
+.mobile-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.layout-tabs :deep(.el-tabs) {
+  min-width: 0;
 }
 
 .layout-tabs :deep(.el-tabs__header) {
   margin: 0;
   border: none;
+  overflow: hidden;
 }
 
 .layout-tabs :deep(.el-tabs__nav-scroll) {
@@ -273,6 +425,7 @@ watch(
 
 .layout-tabs :deep(.el-tabs__nav-wrap) {
   position: relative;
+  overflow: hidden;
 }
 
 .layout-tabs :deep(.el-tabs__nav-wrap)::before,
@@ -342,7 +495,7 @@ watch(
 }
 
 .tab-text {
-  max-width: 140px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -372,6 +525,7 @@ watch(
 }
 
 .layout-content {
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   padding-right: 4px;
@@ -415,6 +569,27 @@ watch(
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    padding: 12px;
+    gap: 12px;
+    height: 100dvh;
+  }
+
+  .layout-main {
+    gap: 10px;
+  }
+
+  .layout-content {
+    padding-right: 0;
+  }
+
+  .guide-footer {
+    justify-content: stretch;
+    flex-wrap: wrap;
   }
 }
 </style>

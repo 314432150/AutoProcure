@@ -1,5 +1,8 @@
 <script setup>
 import { InfoFilled } from "@element-plus/icons-vue";
+import { useViewportBreakpoint } from "@/composables/useViewportBreakpoint";
+
+const isCompact = useViewportBreakpoint(900);
 
 defineProps({
   open: {
@@ -39,7 +42,7 @@ const emit = defineEmits(["update:open", "apply"]);
   <el-dialog
     :model-value="open"
     title="批量设置产品规则"
-    width="480px"
+    :width="isCompact ? '92vw' : '480px'"
     @update:model-value="(value) => emit('update:open', value)"
   >
     <el-form label-position="top">
@@ -136,3 +139,11 @@ const emit = defineEmits(["update:open", "apply"]);
     </template>
   </el-dialog>
 </template>
+
+<style scoped>
+@media (max-width: 900px) {
+  .inline {
+    flex-wrap: wrap;
+  }
+}
+</style>

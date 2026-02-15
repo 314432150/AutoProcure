@@ -5,6 +5,7 @@ import client, { unwrap } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useRoute } from "vue-router";
 import { useTabsStore } from "../stores/tabs";
+import { isCoarsePointerDevice } from "../utils/device";
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -164,7 +165,9 @@ const onWindowKeydown = (event) => {
 };
 
 onMounted(() => {
-  window.addEventListener("keydown", onWindowKeydown);
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener("keydown", onWindowKeydown);
+  }
 });
 
 onBeforeUnmount(() => {
@@ -275,6 +278,21 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+  .profile-form,
+  .profile-actions {
+    max-width: 100%;
+  }
+
+  .action-row {
+    justify-content: stretch;
+  }
+
+  .action-row .el-button {
+    width: 100%;
+  }
 }
 
 </style>

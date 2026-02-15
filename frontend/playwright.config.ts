@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:4173";
 
@@ -10,9 +10,32 @@ export default defineConfig({
   use: {
     baseURL,
     headless: true,
-    viewport: { width: 1280, height: 720 },
     trace: "retain-on-failure",
   },
+  projects: [
+    {
+      name: "desktop",
+      use: {
+        viewport: { width: 1280, height: 800 },
+      },
+    },
+    {
+      name: "tablet",
+      testMatch: /.*(smoke-matrix|mobile-shell|visual-smoke)\.spec\.ts/,
+      use: {
+        viewport: { width: 1024, height: 1366 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "mobile",
+      testMatch: /.*(smoke-matrix|mobile-shell|visual-smoke)\.spec\.ts/,
+      use: {
+        ...devices["iPhone 12"],
+      },
+    },
+  ],
   webServer: {
     command: "npm run dev -- --host 127.0.0.1 --port 4173",
     url: baseURL,

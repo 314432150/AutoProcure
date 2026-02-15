@@ -1,10 +1,22 @@
 <script setup>
+import { Menu } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useTabsStore } from '../stores/tabs'
 import { ElMessageBox } from 'element-plus'
+
+defineProps({
+  showMenuButton: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['toggle-menu'])
 
 const router = useRouter()
 const auth = useAuthStore()
+const tabsStore = useTabsStore()
 
 /** 退出登录并跳转到登录页 */
 const onLogout = async () => {
@@ -13,6 +25,7 @@ const onLogout = async () => {
     cancelButtonText: '取消',
     type: 'warning',
   })
+  tabsStore.$reset()
   auth.clearSession()
   router.push('/login')
 }
@@ -21,9 +34,20 @@ const onLogout = async () => {
 <template>
   <!-- 组件说明：顶部栏，展示品牌与当前用户操作 -->
   <header class="topbar">
-    <div class="brand-row">
+    <div class="topbar-left">
+      <el-button
+        v-if="showMenuButton"
+        class="menu-toggle"
+        circle
+        plain
+        @click="emit('toggle-menu')"
+      >
+        <el-icon><Menu /></el-icon>
+      </el-button>
+      <div class="brand-row">
       <h1 class="brand">采购自动化管理</h1>
       <slot name="extra-actions" />
+      </div>
     </div>
     <div class="topbar-actions">
       <div class="user-badge">
@@ -45,6 +69,17 @@ const onLogout = async () => {
   background: linear-gradient(135deg, rgba(212, 181, 110, 0.16), rgba(196, 0, 0, 0.06));
   border: 1px solid rgba(212, 181, 110, 0.2);
   box-shadow: var(--shadow-md);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.menu-toggle {
+  flex: 0 0 auto;
 }
 
 .brand {
@@ -88,5 +123,45 @@ const onLogout = async () => {
 .user-name {
   font-size: 14px;
   color: var(--ink);
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
+  .topbar-actions {
+    gap: 10px;
+  }
+
+  .user-badge {
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar-left {
+    width: 100%;
+  }
+
+  .brand-row {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 </style>

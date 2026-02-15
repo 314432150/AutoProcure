@@ -2,6 +2,15 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+defineProps({
+  mobile: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['select'])
+
 const route = useRoute()
 const router = useRouter()
 
@@ -16,6 +25,7 @@ const menuItems = [
 /** 切换左侧导航并跳转路由 */
 const onSelect = (path) => {
   router.push(path)
+  emit('select', path)
 }
 
 const activeMenu = computed(() => {
@@ -28,7 +38,7 @@ const activeMenu = computed(() => {
 
 <template>
   <!-- 组件说明：侧边导航栏，用于切换业务模块 -->
-  <aside class="sidenav">
+  <aside class="sidenav" :class="{ 'sidenav--mobile': mobile }">
     <div class="sidenav-head">
       <div class="sidenav-badge">采</div>
       <div>
@@ -62,6 +72,14 @@ const activeMenu = computed(() => {
   top: 24px;
   align-self: start;
   overflow: auto;
+}
+
+.sidenav--mobile {
+  position: static;
+  top: auto;
+  height: auto;
+  min-height: 100%;
+  border-radius: 14px;
 }
 
 .sidenav-head {

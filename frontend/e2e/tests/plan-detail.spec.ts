@@ -49,6 +49,9 @@ test.describe("PlanDetail", () => {
     await page.getByRole("button", { name: "新增行" }).click();
     await expect(page.getByRole("button", { name: "移除" })).toBeVisible();
     await page.getByRole("button", { name: "移除" }).click();
+    await expect(page.getByRole("dialog", { name: "移除确认" })).toBeVisible();
+    await expect(page.getByText("确认移除第 1 条明细吗？")).toBeVisible();
+    await page.getByRole("button", { name: "确认移除" }).click();
     await expect(page.getByRole("button", { name: "移除" })).toHaveCount(0);
   });
 
@@ -102,11 +105,25 @@ test.describe("PlanDetail", () => {
 
   test("未保存修改离开提示", async ({ page }) => {
     await page.getByRole("button", { name: "新增行" }).click();
-    await page.getByText("返回计划列表").click();
+    await page.getByRole("menuitem", { name: /计划生成/ }).click();
     await expect(
       page.getByRole("dialog", { name: "未保存修改" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "留在当前页" }).click();
     await expect(page).toHaveURL(/\/plans\/2026-01-02/);
+  });
+
+  test("移动端以卡片形式编辑并触发移除确认", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(page.getByRole("button", { name: "展开汇总" })).toBeVisible();
+
+    await page.getByRole("button", { name: "新增行" }).click();
+    await expect(page.locator(".mobile-detail-card").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "移除" }).first().click();
+    await expect(page.getByRole("dialog", { name: "移除确认" })).toBeVisible();
+    await expect(page.getByText("确认移除第 1 条明细吗？")).toBeVisible();
+    await page.getByRole("button", { name: "确认移除" }).click();
   });
 });

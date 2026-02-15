@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import client, { unwrap } from '../api/client'
 import YearMonthSelect from '../components/YearMonthSelect.vue'
+import { useViewportBreakpoint } from '../composables/useViewportBreakpoint'
 
 const loading = ref(false)
 const workdays = ref([])
@@ -10,6 +11,7 @@ const query = reactive({
   year: new Date().getFullYear(),
   month: new Date().getMonth() + 1,
 })
+const isCompact = useViewportBreakpoint(900)
 
 /** 获取指定年月的工作日列表 */
 const fetchWorkdays = async () => {
@@ -88,7 +90,7 @@ watch(
           <div class="workdays-sub">共 {{ workdays.length }} 天</div>
         </div>
       </div>
-      <div class="table-shell workdays-body">
+      <div class="table-shell workdays-body" :class="{ 'workdays-body--compact': isCompact }">
         <div v-if="workdays.length" class="calendar">
           <div class="calendar-head">
             <div v-for="label in weekdayLabels" :key="label" class="calendar-cell head">周{{ label }}</div>
@@ -205,16 +207,44 @@ watch(
 .calendar-mark {
   position: absolute;
   top: 6px;
-  left: 6px;
+  right: 6px;
   font-size: 11px;
   color: var(--muted);
   padding: 2px 6px;
   border-radius: 999px;
   background: transparent;
+  line-height: 1;
 }
 
 .calendar-cell.workday .calendar-mark {
   color: #8f0000;
   background: rgba(255, 224, 224, 0.85);
+}
+
+@media (max-width: 900px) {
+  .workdays-body--compact .calendar-head,
+  .workdays-body--compact .calendar-row {
+    gap: 6px;
+  }
+
+  .workdays-body--compact .calendar-cell {
+    height: 48px;
+    border-radius: 10px;
+  }
+
+  .workdays-body--compact .calendar-cell.head {
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .workdays-body--compact .calendar-day {
+    font-size: 14px;
+  }
+
+  .workdays-body--compact .calendar-mark {
+    top: 4px;
+    right: 4px;
+    padding: 1px 4px;
+  }
 }
 </style>

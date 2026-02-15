@@ -7,6 +7,7 @@ import { useRoute } from "vue-router";
 import PlanDetailTable from "@/components/plans/PlanDetailTable.vue";
 import { usePlanDetailEditor } from "@/composables/usePlanDetailEditor";
 import { useTabsStore } from "@/stores/tabs";
+import { isCoarsePointerDevice } from "@/utils/device";
 
 const props = defineProps({
   planDate: { type: String, default: "" },
@@ -85,6 +86,24 @@ const onWindowKeydown = (event) => {
   onSavePlan();
 };
 
+const onConfirmRemoveRow = async (index) => {
+  const rowNo = Number(index) + 1;
+  try {
+    await ElMessageBox.confirm(
+      `确认移除第 ${rowNo} 条明细吗？`,
+      "移除确认",
+      {
+        confirmButtonText: "确认移除",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
+  } catch {
+    return;
+  }
+  removeRow(index);
+};
+
 watch(
   () => hasUnsavedChanges.value,
   (dirty) => {
@@ -118,7 +137,9 @@ watch(
 
 onMounted(() => {
   window.addEventListener("beforeunload", onWindowBeforeUnload);
-  window.addEventListener("keydown", onWindowKeydown);
+  if (!isCoarsePointerDevice()) {
+    window.addEventListener("keydown", onWindowKeydown);
+  }
 });
 
 onBeforeUnmount(() => {
@@ -147,7 +168,7 @@ onBeforeRouteUpdate(async () => await confirmLeaveWhenDirty());
     :quantity-rule-tooltip="quantityRuleTooltip"
     @add-row="addRow"
     @save="onSavePlan"
-    @remove-row="removeRow"
+    @remove-row="onConfirmRemoveRow"
     @product-change="onProductChange"
     @quantity-input="updateAmountByQuantity"
     @quantity-blur="onQuantityBlur"
