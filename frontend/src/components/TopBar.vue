@@ -2,6 +2,7 @@
 import { Menu } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useTabsStore } from '../stores/tabs'
 import { ElMessageBox } from 'element-plus'
 
 defineProps({
@@ -15,6 +16,7 @@ const emit = defineEmits(['toggle-menu'])
 
 const router = useRouter()
 const auth = useAuthStore()
+const tabsStore = useTabsStore()
 
 /** 退出登录并跳转到登录页 */
 const onLogout = async () => {
@@ -23,6 +25,7 @@ const onLogout = async () => {
     cancelButtonText: '取消',
     type: 'warning',
   })
+  tabsStore.$reset()
   auth.clearSession()
   router.push('/login')
 }

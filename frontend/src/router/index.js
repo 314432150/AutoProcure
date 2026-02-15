@@ -40,7 +40,7 @@ export const setupRouterGuards = (pinia) => {
   router.beforeEach((to) => {
     const auth = useAuthStore(pinia)
     if (to.path === '/login' && auth.isAuthed) {
-      return { path: '/products' }
+      return { path: '/plans' }
     }
     if (to.meta.public) {
       return true

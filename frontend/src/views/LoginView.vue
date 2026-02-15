@@ -31,7 +31,7 @@ const onSubmit = async () => {
     localStorage.setItem(LAST_PASSWORD_KEY, form.password)
     localStorage.setItem(REMEMBER_KEY, rememberMe.value ? '1' : '0')
     ElMessage.success('登录成功')
-    router.push('/products')
+    router.push('/plans')
   } catch (error) {
     const payload = error?.response?.data
     const message = payload?.message || payload?.detail || error?.message || '登录失败'
@@ -75,6 +75,7 @@ onMounted(() => {
         <el-button type="primary" size="large" :loading="loading" @click="onSubmit">登录</el-button>
       </el-form>
     </div>
+    <div class="mobile-info-line">稳定 + 高效 + 可追溯</div>
     <div class="login-panel">
       <div class="panel-inner">
         <h2>今日任务</h2>
@@ -173,12 +174,92 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.mobile-task {
+  display: none;
+}
+
+.mobile-info-line {
+  display: none;
+}
+
 @media (max-width: 960px) {
   .login {
-    grid-template-columns: 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 16px 16px calc(64px + env(safe-area-inset-bottom));
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 88% at 4% 6%, rgba(171, 143, 78, 0.72) 0%, rgba(171, 143, 78, 0.38) 35%, rgba(171, 143, 78, 0.12) 62%, rgba(171, 143, 78, 0) 76%),
+      linear-gradient(165deg, #2a2a29 0%, #232321 55%, #1f1f1e 100%);
   }
+
+  .login-card {
+    width: min(100%, 560px);
+    padding: 22px 20px 18px;
+    justify-content: flex-start;
+    align-self: auto;
+    min-height: 0;
+    height: fit-content;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 248, 238, 0.96), rgba(255, 244, 228, 0.94)),
+      var(--card);
+    border: 1px solid rgba(201, 164, 74, 0.22);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(2px);
+  }
+
+  .login-head {
+    margin-bottom: 18px;
+  }
+
+  .login-card h1 {
+    font-size: 24px;
+  }
+
+  .login-mark {
+    box-shadow: 0 8px 18px rgba(120, 72, 32, 0.14);
+  }
+
+  .login-form {
+    max-width: 100%;
+    gap: 12px;
+  }
+
+  .login-form .el-button {
+    width: 100%;
+  }
+
+  .mobile-info-line {
+    display: inline-flex;
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 20;
+    max-width: calc(100vw - 28px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+    color: rgba(247, 241, 230, 0.96);
+    background:
+      radial-gradient(circle at 14% 25%, rgba(214, 178, 96, 0.26), rgba(214, 178, 96, 0) 60%),
+      linear-gradient(135deg, rgba(73, 63, 44, 0.88), rgba(47, 43, 37, 0.86));
+    border: 1px solid rgba(210, 174, 95, 0.42);
+    box-shadow: 0 4px 10px rgba(15, 14, 13, 0.35), inset 0 1px 0 rgba(233, 203, 136, 0.32);
+    backdrop-filter: blur(3px);
+    pointer-events: none;
+  }
+
   .login-panel {
-    min-height: 240px;
+    display: none;
   }
 }
 </style>

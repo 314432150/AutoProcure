@@ -50,33 +50,37 @@ const emit = defineEmits([
         </div>
       </div>
       <div class="action-block">
-        <el-dropdown @command="(command) => emit('plan-action', command)">
+        <el-button-group class="split-action">
           <el-button type="primary" plain @click="emit('generate')">
             生成计划
-            <el-icon class="el-icon--right">
-              <ArrowDown />
-            </el-icon>
           </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="budget">预算设置</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-dropdown @command="(command) => emit('export-action', command)">
+          <el-dropdown trigger="click" @command="(command) => emit('plan-action', command)">
+            <el-button type="primary" plain class="split-trigger">
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="budget">预算设置</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </el-button-group>
+        <el-button-group class="split-action">
           <el-button type="primary" plain :loading="exportLoading" @click="emit('export')">
             导出Excel
-            <el-icon class="el-icon--right">
-              <ArrowDown />
-            </el-icon>
           </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="template">模板编辑</el-dropdown-item>
-              <el-dropdown-item command="precision">精度设置</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          <el-dropdown trigger="click" @command="(command) => emit('export-action', command)">
+            <el-button type="primary" plain class="split-trigger">
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="template">模板编辑</el-dropdown-item>
+                <el-dropdown-item command="precision">精度设置</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </el-button-group>
       </div>
     </div>
     <el-alert
@@ -113,6 +117,14 @@ const emit = defineEmits([
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+}
+
+.split-action {
+  display: inline-flex;
+}
+
+.split-trigger {
+  padding: 0 10px;
 }
 
 .date-row {
@@ -157,12 +169,18 @@ const emit = defineEmits([
     width: 100%;
   }
 
-  .action-block :deep(.el-dropdown) {
+  .action-block .split-action {
+    flex: 1;
+    display: flex;
+  }
+
+  .action-block .split-action > .el-button {
     flex: 1;
   }
 
-  .action-block :deep(.el-dropdown .el-button) {
-    width: 100%;
+  .action-block .split-action :deep(.el-dropdown),
+  .action-block .split-action :deep(.el-dropdown .el-button) {
+    flex: 0 0 auto;
   }
 
   .date-row {
