@@ -10,6 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const tabsStore = useTabsStore()
 const ONBOARDING_DONE_KEY = 'autoprocure:onboarding:done:v1'
+const MOBILE_BREAKPOINT = 1180
 
 const guideVisible = ref(false)
 const guideStep = ref(0)
@@ -113,7 +114,8 @@ const openGuide = () => {
 }
 
 const updateViewportMode = () => {
-  isMobile.value = window.innerWidth <= 1024
+  const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth)
+  isMobile.value = viewportWidth <= MOBILE_BREAKPOINT
   if (!isMobile.value) {
     navDrawerOpen.value = false
   }
@@ -154,7 +156,11 @@ const nextGuideStep = () => {
 
 onMounted(() => {
   updateViewportMode()
+  requestAnimationFrame(updateViewportMode)
+  setTimeout(updateViewportMode, 0)
   window.addEventListener('resize', updateViewportMode)
+  window.addEventListener('orientationchange', updateViewportMode)
+  window.visualViewport?.addEventListener('resize', updateViewportMode)
   const isBot = Boolean(navigator.webdriver)
   const hasDone = localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
   if (!isBot && !hasDone) {
@@ -164,6 +170,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateViewportMode)
+  window.removeEventListener('orientationchange', updateViewportMode)
+  window.visualViewport?.removeEventListener('resize', updateViewportMode)
 })
 
 
@@ -460,7 +468,7 @@ watch(
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .layout {
     padding: 12px;
     gap: 12px;

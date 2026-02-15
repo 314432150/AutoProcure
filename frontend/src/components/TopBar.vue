@@ -122,7 +122,7 @@ const onLogout = async () => {
   color: var(--ink);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .topbar {
     padding: 14px 16px;
     gap: 12px;
